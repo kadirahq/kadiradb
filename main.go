@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/meteorhacks/kadiradb-metrics/kmdb"
+	"github.com/kadirahq/kadiradb-metrics/kmdb"
 )
 
 const (
