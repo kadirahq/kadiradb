@@ -28,7 +28,7 @@ func init() {
 	dbname = flag.String("n", "test", "database name")
 	address = flag.String("a", "localhost:19000", "address")
 	concurrency = flag.Int("c", 5, "concurrency")
-	batchsize = flag.Int("b", 10000, "requests per batch")
+	batchsize = flag.Int("b", 100, "requests per batch")
 	randomize = flag.Bool("r", true, "randomize fields")
 	flag.Parse()
 }
