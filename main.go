@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/kadirahq/kadiradb-metrics/kmdb"
 )
@@ -27,6 +28,11 @@ func main() {
 	address := flag.String("addr", DefaultAddr, "server address")
 	basePath := flag.String("path", DefaultPath, "data path")
 	flag.Parse()
+
+	err := os.MkdirAll(*basePath, 0755)
+	if err != nil {
+		panic(err)
+	}
 
 	if *address == "" {
 		panic("invalid address")
