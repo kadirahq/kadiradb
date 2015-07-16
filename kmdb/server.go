@@ -6,6 +6,7 @@ import (
 	"errors"
 	"io/ioutil"
 	"log"
+	"os"
 	"path"
 
 	"github.com/gogo/protobuf/proto"
@@ -14,6 +15,8 @@ import (
 )
 
 var (
+	// DebugMode TODO
+	DebugMode = os.Getenv("debug") != ""
 	// ErrBatch TODO
 	ErrBatch = errors.New("batch failed")
 	// ErrDatabase TODO
@@ -77,6 +80,10 @@ func (s *server) Listen() (err error) {
 }
 
 func (s *server) Info(reqData []byte) (resData []byte, err error) {
+	if DebugMode {
+		log.Println("> info:")
+	}
+
 	res := &InfoRes{}
 	res.Databases = make([]*DBInfo, len(s.databases))
 
@@ -107,6 +114,10 @@ func (s *server) Open(reqData []byte) (resData []byte, err error) {
 	if err != nil {
 		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
+	}
+
+	if DebugMode {
+		log.Println("> open:", req)
 	}
 
 	_, ok := s.databases[req.Name]
@@ -140,11 +151,15 @@ func (s *server) Open(reqData []byte) (resData []byte, err error) {
 	return resData, nil
 }
 
-func (s *server) Put(req []byte) (res []byte, err error) {
+func (s *server) Put(reqData []byte) (resData []byte, err error) {
 	batch := &PutReqBatch{}
-	err = proto.Unmarshal(req, batch)
+	err = proto.Unmarshal(reqData, batch)
 	if err != nil {
 		return nil, err
+	}
+
+	if DebugMode {
+		log.Println("> put:", batch)
 	}
 
 	n := len(batch.Batch)
@@ -164,20 +179,24 @@ func (s *server) Put(req []byte) (res []byte, err error) {
 		return nil, batchError
 	}
 
-	res, err = proto.Marshal(r)
+	resData, err = proto.Marshal(r)
 	if err != nil {
 		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
 	}
 
-	return res, nil
+	return resData, nil
 }
 
-func (s *server) Inc(req []byte) (res []byte, err error) {
+func (s *server) Inc(reqData []byte) (resData []byte, err error) {
 	batch := &IncReqBatch{}
-	err = proto.Unmarshal(req, batch)
+	err = proto.Unmarshal(reqData, batch)
 	if err != nil {
 		return nil, err
+	}
+
+	if DebugMode {
+		log.Println("> put:", batch)
 	}
 
 	n := len(batch.Batch)
@@ -197,20 +216,24 @@ func (s *server) Inc(req []byte) (res []byte, err error) {
 		return nil, batchError
 	}
 
-	res, err = proto.Marshal(r)
+	resData, err = proto.Marshal(r)
 	if err != nil {
 		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
 	}
 
-	return res, nil
+	return resData, nil
 }
 
-func (s *server) Get(req []byte) (res []byte, err error) {
+func (s *server) Get(reqData []byte) (resData []byte, err error) {
 	batch := &GetReqBatch{}
-	err = proto.Unmarshal(req, batch)
+	err = proto.Unmarshal(reqData, batch)
 	if err != nil {
 		return nil, err
+	}
+
+	if DebugMode {
+		log.Println("> put:", batch)
 	}
 
 	n := len(batch.Batch)
@@ -230,13 +253,13 @@ func (s *server) Get(req []byte) (res []byte, err error) {
 		return nil, batchError
 	}
 
-	res, err = proto.Marshal(r)
+	resData, err = proto.Marshal(r)
 	if err != nil {
 		log.Printf("ERROR: %s\n", err.Error())
 		return nil, err
 	}
 
-	return res, nil
+	return resData, nil
 }
 
 func (s *server) put(req *PutReq) (res *PutRes, err error) {
