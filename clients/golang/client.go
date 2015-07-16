@@ -1,18 +1,19 @@
-package kmdb
+package kmdbclient
 
 import (
 	"github.com/golang/protobuf/proto"
+	"github.com/kadirahq/kadiradb-metrics/kmdb"
 	"github.com/meteorhacks/simple-rpc-go"
 )
 
 // Client TODO
 type Client interface {
 	Connect() (err error)
-	Info(req *InfoReq) (r *InfoRes, err error)
-	Open(req *OpenReq) (r *OpenRes, err error)
-	Put(req *PutReqBatch) (r *PutResBatch, err error)
-	Inc(req *IncReqBatch) (r *IncResBatch, err error)
-	Get(req *GetReqBatch) (r *GetResBatch, err error)
+	Info(req *kmdb.InfoReq) (r *kmdb.InfoRes, err error)
+	Open(req *kmdb.OpenReq) (r *kmdb.OpenRes, err error)
+	Put(req *kmdb.PutReqBatch) (r *kmdb.PutResBatch, err error)
+	Inc(req *kmdb.IncReqBatch) (r *kmdb.IncResBatch, err error)
+	Get(req *kmdb.GetReqBatch) (r *kmdb.GetResBatch, err error)
 }
 
 type client struct {
@@ -20,8 +21,8 @@ type client struct {
 	cli  srpc.Client
 }
 
-// NewClient TODO
-func NewClient(addr string) (c Client) {
+// New TODO
+func New(addr string) (c Client) {
 	cli := srpc.NewClient(addr)
 	return &client{addr, cli}
 }
@@ -30,7 +31,7 @@ func (c *client) Connect() (err error) {
 	return c.cli.Connect()
 }
 
-func (c *client) Info(req *InfoReq) (r *InfoRes, err error) {
+func (c *client) Info(req *kmdb.InfoReq) (r *kmdb.InfoRes, err error) {
 	pld, err := proto.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -41,7 +42,7 @@ func (c *client) Info(req *InfoReq) (r *InfoRes, err error) {
 		return nil, err
 	}
 
-	r = &InfoRes{}
+	r = &kmdb.InfoRes{}
 	err = proto.Unmarshal(out, r)
 	if err != nil {
 		return nil, err
@@ -50,7 +51,7 @@ func (c *client) Info(req *InfoReq) (r *InfoRes, err error) {
 	return r, nil
 }
 
-func (c *client) Open(req *OpenReq) (r *OpenRes, err error) {
+func (c *client) Open(req *kmdb.OpenReq) (r *kmdb.OpenRes, err error) {
 	pld, err := proto.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -61,7 +62,7 @@ func (c *client) Open(req *OpenReq) (r *OpenRes, err error) {
 		return nil, err
 	}
 
-	r = &OpenRes{}
+	r = &kmdb.OpenRes{}
 	err = proto.Unmarshal(out, r)
 	if err != nil {
 		return nil, err
@@ -70,7 +71,7 @@ func (c *client) Open(req *OpenReq) (r *OpenRes, err error) {
 	return r, nil
 }
 
-func (c *client) Put(req *PutReqBatch) (r *PutResBatch, err error) {
+func (c *client) Put(req *kmdb.PutReqBatch) (r *kmdb.PutResBatch, err error) {
 	pld, err := proto.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -81,7 +82,7 @@ func (c *client) Put(req *PutReqBatch) (r *PutResBatch, err error) {
 		return nil, err
 	}
 
-	r = &PutResBatch{}
+	r = &kmdb.PutResBatch{}
 	err = proto.Unmarshal(out, r)
 	if err != nil {
 		return nil, err
@@ -90,7 +91,7 @@ func (c *client) Put(req *PutReqBatch) (r *PutResBatch, err error) {
 	return r, nil
 }
 
-func (c *client) Inc(req *IncReqBatch) (r *IncResBatch, err error) {
+func (c *client) Inc(req *kmdb.IncReqBatch) (r *kmdb.IncResBatch, err error) {
 	pld, err := proto.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -101,7 +102,7 @@ func (c *client) Inc(req *IncReqBatch) (r *IncResBatch, err error) {
 		return nil, err
 	}
 
-	r = &IncResBatch{}
+	r = &kmdb.IncResBatch{}
 	err = proto.Unmarshal(out, r)
 	if err != nil {
 		return nil, err
@@ -110,7 +111,7 @@ func (c *client) Inc(req *IncReqBatch) (r *IncResBatch, err error) {
 	return r, nil
 }
 
-func (c *client) Get(req *GetReqBatch) (r *GetResBatch, err error) {
+func (c *client) Get(req *kmdb.GetReqBatch) (r *kmdb.GetResBatch, err error) {
 	pld, err := proto.Marshal(req)
 	if err != nil {
 		return nil, err
@@ -121,7 +122,7 @@ func (c *client) Get(req *GetReqBatch) (r *GetResBatch, err error) {
 		return nil, err
 	}
 
-	r = &GetResBatch{}
+	r = &kmdb.GetResBatch{}
 	err = proto.Unmarshal(out, r)
 	if err != nil {
 		return nil, err

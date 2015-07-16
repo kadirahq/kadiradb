@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/kadirahq/kadiradb-metrics/clients/golang"
 	"github.com/kadirahq/kadiradb-metrics/kmdb"
 )
 
@@ -49,7 +50,7 @@ func main() {
 
 func start() {
 	// create a new bddp client
-	c := kmdb.NewClient(*address)
+	c := kmdbclient.New(*address)
 
 	// connect to given address
 	if err := c.Connect(); err != nil {

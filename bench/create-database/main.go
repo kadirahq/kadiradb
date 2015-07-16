@@ -3,12 +3,13 @@ package main
 import (
 	"fmt"
 
+	"github.com/kadirahq/kadiradb-metrics/clients/golang"
 	"github.com/kadirahq/kadiradb-metrics/kmdb"
 )
 
 func main() {
 	// create a new bddp client
-	c := kmdb.NewClient("localhost:19000")
+	c := kmdbclient.New("localhost:19000")
 	// connect to given address
 	if err := c.Connect(); err != nil {
 		panic("ERROR: could not connect")
@@ -18,7 +19,7 @@ func main() {
 	sendInfoReq(c)
 }
 
-func sendOpenReq(c kmdb.Client) {
+func sendOpenReq(c kmdbclient.Client) {
 	req := &kmdb.OpenReq{
 		Name:          "test",
 		Resolution:    60000000000,
@@ -35,7 +36,7 @@ func sendOpenReq(c kmdb.Client) {
 	}
 }
 
-func sendInfoReq(c kmdb.Client) {
+func sendInfoReq(c kmdbclient.Client) {
 	req := &kmdb.InfoReq{}
 	res, err := c.Info(req)
 	if err != nil {
