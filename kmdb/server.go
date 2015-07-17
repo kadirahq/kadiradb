@@ -58,7 +58,8 @@ func NewServer(address, basePath string) (_s Server, err error) {
 
 		db, err := kdb.Open(dbPath)
 		if err != nil {
-			return nil, err
+			log.Printf("KDB Open error: %s\n", err.Error())
+			continue
 		}
 
 		s.databases[fname] = db
