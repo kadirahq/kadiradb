@@ -14,6 +14,12 @@ import (
 	"github.com/meteorhacks/simple-rpc-go"
 )
 
+const (
+	// DataDirPerm will be set as permissions if data directory is created.
+	// if data path already exists, it will maintain the old value.
+	DataDirPerm = 0755
+)
+
 var (
 	// DebugMode TODO
 	DebugMode = os.Getenv("debug") != ""
@@ -45,6 +51,11 @@ func NewServer(address, basePath string) (_s Server, err error) {
 		address:   address,
 		basePath:  basePath,
 		databases: make(map[string]kdb.Database),
+	}
+
+	err = os.MkdirAll(basePath, DataDirPerm)
+	if err != nil {
+		return nil, err
 	}
 
 	files, err := ioutil.ReadDir(basePath)

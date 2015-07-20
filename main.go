@@ -4,7 +4,6 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"os"
 
 	"github.com/kadirahq/kadiradb-metrics/kmdb"
 )
@@ -13,36 +12,32 @@ const (
 	// DefaultAddr is the default address the server will listen to
 	DefaultAddr = ":19000"
 
-	// DefaultPath is the default address the server will listen to
-	DefaultPath = "/tmp/kmdb"
-
 	// PPROFAddr is the address the pprof server will listen to
 	// Make sure this port cannot be accessed from outside
 	PPROFAddr = ":6060"
 )
 
 func main() {
-	// start pprof
-	go startPPROF()
-
-	address := flag.String("addr", DefaultAddr, "server address")
-	basePath := flag.String("path", DefaultPath, "data path")
+	addr := flag.String("addr", DefaultAddr, "server address")
+	path := flag.String("path", "", "path to store data files")
+	pprof := flag.Bool("pprof", false, "enable pprof")
 	flag.Parse()
 
-	err := os.MkdirAll(*basePath, 0755)
+	if *addr == "" {
+		panic("invalid address: '" + *addr + "'")
+	}
+
+	if *path == "" {
+		panic("invalid data path: '" + *path + "'")
+	}
+
+	s, err := kmdb.NewServer(*addr, *path)
 	if err != nil {
 		panic(err)
 	}
 
-	if *address == "" {
-		panic("invalid address")
-	}
-
-	// finally, start the simple-rpc server on main
-	// app will exit if/when simple-rpc server crashes
-	s, err := kmdb.NewServer(*address, *basePath)
-	if err != nil {
-		panic(err)
+	if *pprof {
+		go startPPROF()
 	}
 
 	log.Println(s.Listen())
