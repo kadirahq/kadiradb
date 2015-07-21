@@ -11,7 +11,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/kadirahq/kadiradb-core/kdb"
-	"github.com/meteorhacks/simple-rpc-go"
+	"github.com/meteorhacks/simple-rpc-go/srpc"
 )
 
 const (
