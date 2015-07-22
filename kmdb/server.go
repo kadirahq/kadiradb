@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path"
+	"time"
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/kadirahq/kadiradb-core/kdb"
@@ -63,6 +64,9 @@ func NewServer(address, basePath string) (_s Server, err error) {
 		return nil, err
 	}
 
+	now := time.Now().UnixNano()
+	fields := []string{":P"}
+
 	for _, finfo := range files {
 		fname := finfo.Name()
 		dbPath := path.Join(basePath, fname)
@@ -71,6 +75,22 @@ func NewServer(address, basePath string) (_s Server, err error) {
 		if err != nil {
 			log.Printf("KDB Open error: %s\n", err.Error())
 			continue
+		}
+
+		dbmd := db.Metadata()
+
+		var i int64
+		for i = 0; i < dbmd.MaxRWEpochs; i++ {
+			start := now - i*dbmd.EpochDuration
+			end := start + dbmd.Resolution
+
+			// this will trigger a epoch load
+			// also acts as a db health check
+			_, err = db.One(start, end, fields)
+			if err != nil {
+				db.Close()
+				continue
+			}
 		}
 
 		s.databases[fname] = db
