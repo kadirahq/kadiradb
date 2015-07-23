@@ -35,6 +35,7 @@ type Server interface {
 	Listen() (err error)
 	Info(req []byte) (res []byte, err error)
 	Open(req []byte) (res []byte, err error)
+	Edit(req []byte) (res []byte, err error)
 	Put(req []byte) (res []byte, err error)
 	Inc(req []byte) (res []byte, err error)
 	Get(req []byte) (res []byte, err error)
@@ -103,6 +104,7 @@ func (s *server) Listen() (err error) {
 	srv := srpc.NewServer(s.address)
 	srv.SetHandler("info", s.Info)
 	srv.SetHandler("open", s.Open)
+	srv.SetHandler("edit", s.Edit)
 	srv.SetHandler("put", s.Put)
 	srv.SetHandler("inc", s.Inc)
 	srv.SetHandler("get", s.Get)
@@ -172,6 +174,44 @@ func (s *server) Open(reqData []byte) (resData []byte, err error) {
 		}
 
 		s.databases[req.Name] = db
+	}
+
+	resData, err = proto.Marshal(res)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err.Error())
+		return nil, err
+	}
+
+	return resData, nil
+}
+
+func (s *server) Edit(reqData []byte) (resData []byte, err error) {
+	req := &EditReq{}
+	res := &EditRes{}
+	err = proto.Unmarshal(reqData, req)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err.Error())
+		return nil, err
+	}
+
+	if DebugMode {
+		log.Println("> edit:", req)
+	}
+
+	db, ok := s.databases[req.Name]
+	if !ok {
+		return nil, ErrDatabase
+	}
+
+	md := kdb.Metadata{
+		MaxROEpochs: req.MaxROEpochs,
+		MaxRWEpochs: req.MaxRWEpochs,
+	}
+
+	err = db.EditMetadata(&md)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err.Error())
+		return nil, err
 	}
 
 	resData, err = proto.Marshal(res)
