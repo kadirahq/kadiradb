@@ -80,6 +80,10 @@ func NewServer(address, basePath string) (_s Server, err error) {
 
 		dbmd := db.Metadata()
 
+		if DebugMode {
+			log.Printf("KDB Metadata: %s %+v", fname, dbmd)
+		}
+
 		var i int64
 		for i = 0; i < dbmd.MaxRWEpochs; i++ {
 			start := now - i*dbmd.EpochDuration
