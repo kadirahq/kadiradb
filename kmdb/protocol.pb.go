@@ -14,6 +14,8 @@ It has these top-level messages:
 	DBInfo
 	OpenReq
 	OpenRes
+	EditReq
+	EditRes
 	PutReq
 	PutReqBatch
 	PutRes
@@ -87,6 +89,23 @@ type OpenRes struct {
 func (m *OpenRes) Reset()         { *m = OpenRes{} }
 func (m *OpenRes) String() string { return proto.CompactTextString(m) }
 func (*OpenRes) ProtoMessage()    {}
+
+type EditReq struct {
+	Name        string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	MaxROEpochs int64  `protobuf:"varint,6,opt,name=maxROEpochs" json:"maxROEpochs,omitempty"`
+	MaxRWEpochs int64  `protobuf:"varint,7,opt,name=maxRWEpochs" json:"maxRWEpochs,omitempty"`
+}
+
+func (m *EditReq) Reset()         { *m = EditReq{} }
+func (m *EditReq) String() string { return proto.CompactTextString(m) }
+func (*EditReq) ProtoMessage()    {}
+
+type EditRes struct {
+}
+
+func (m *EditRes) Reset()         { *m = EditRes{} }
+func (m *EditRes) String() string { return proto.CompactTextString(m) }
+func (*EditRes) ProtoMessage()    {}
 
 type PutReq struct {
 	Database  string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
