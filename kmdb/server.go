@@ -48,7 +48,7 @@ type server struct {
 }
 
 // NewServer TODO
-func NewServer(address, basePath string) (_s Server, err error) {
+func NewServer(address, basePath string, recovery bool) (_s Server, err error) {
 	s := &server{
 		address:   address,
 		basePath:  basePath,
@@ -72,7 +72,7 @@ func NewServer(address, basePath string) (_s Server, err error) {
 		fname := finfo.Name()
 		dbPath := path.Join(basePath, fname)
 
-		db, err := kdb.Open(dbPath)
+		db, err := kdb.Open(dbPath, recovery)
 		if err != nil {
 			log.Printf("KDB Open error: %s\n", err.Error())
 			continue

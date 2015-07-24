@@ -23,6 +23,8 @@ func main() {
 	addr := flag.String("addr", DefaultAddr, "server address")
 	path := flag.String("path", "", "path to store data files")
 	pprof := flag.Bool("pprof", false, "enable pprof")
+	write := flag.Bool("write", false, "enable always write mode")
+
 	flag.Parse()
 
 	if *addr == "" {
@@ -33,7 +35,7 @@ func main() {
 		panic("invalid data path: '" + *path + "'")
 	}
 
-	s, err := kmdb.NewServer(*addr, *path)
+	s, err := kmdb.NewServer(*addr, *path, *write)
 	if err != nil {
 		panic(err)
 	}
