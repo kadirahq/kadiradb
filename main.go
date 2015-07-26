@@ -23,7 +23,7 @@ func main() {
 	addr := flag.String("addr", DefaultAddr, "server address")
 	path := flag.String("path", "", "path to store data files")
 	pprof := flag.Bool("pprof", false, "enable pprof")
-	write := flag.Bool("write", false, "enable always write mode")
+	write := flag.Bool("write", false, "enable recovery")
 
 	flag.Parse()
 
