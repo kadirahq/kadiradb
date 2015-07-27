@@ -199,7 +199,7 @@ func (m *InfoRes) GetDatabases() []*DBInfo {
 }
 
 type DBInfo struct {
-	Name       string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Database   string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
 	Resolution uint32 `protobuf:"varint,2,opt,name=resolution" json:"resolution,omitempty"`
 	Retention  uint32 `protobuf:"varint,3,opt,name=retention" json:"retention,omitempty"`
 }
@@ -209,12 +209,12 @@ func (m *DBInfo) String() string { return proto.CompactTextString(m) }
 func (*DBInfo) ProtoMessage()    {}
 
 type OpenReq struct {
-	Name        string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Database    string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
 	Resolution  uint32 `protobuf:"varint,2,opt,name=resolution" json:"resolution,omitempty"`
-	EpochTime   uint32 `protobuf:"varint,3,opt,name=epochTime" json:"epochTime,omitempty"`
-	Retention   uint32 `protobuf:"varint,4,opt,name=retention" json:"retention,omitempty"`
-	MaxROEpochs uint32 `protobuf:"varint,6,opt,name=maxROEpochs" json:"maxROEpochs,omitempty"`
-	MaxRWEpochs uint32 `protobuf:"varint,7,opt,name=maxRWEpochs" json:"maxRWEpochs,omitempty"`
+	Retention   uint32 `protobuf:"varint,3,opt,name=retention" json:"retention,omitempty"`
+	EpochTime   uint32 `protobuf:"varint,4,opt,name=epochTime" json:"epochTime,omitempty"`
+	MaxROEpochs uint32 `protobuf:"varint,5,opt,name=maxROEpochs" json:"maxROEpochs,omitempty"`
+	MaxRWEpochs uint32 `protobuf:"varint,6,opt,name=maxRWEpochs" json:"maxRWEpochs,omitempty"`
 }
 
 func (m *OpenReq) Reset()         { *m = OpenReq{} }
@@ -229,7 +229,7 @@ func (m *OpenRes) String() string { return proto.CompactTextString(m) }
 func (*OpenRes) ProtoMessage()    {}
 
 type EditReq struct {
-	Name        string `protobuf:"bytes,1,opt,name=name" json:"name,omitempty"`
+	Database    string `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
 	Retention   uint32 `protobuf:"varint,2,opt,name=retention" json:"retention,omitempty"`
 	MaxROEpochs uint32 `protobuf:"varint,3,opt,name=maxROEpochs" json:"maxROEpochs,omitempty"`
 	MaxRWEpochs uint32 `protobuf:"varint,4,opt,name=maxRWEpochs" json:"maxRWEpochs,omitempty"`
@@ -247,13 +247,11 @@ func (m *EditRes) String() string { return proto.CompactTextString(m) }
 func (*EditRes) ProtoMessage()    {}
 
 type PutReq struct {
-	Database   string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
-	Resolution uint32   `protobuf:"varint,2,opt,name=resolution" json:"resolution,omitempty"`
-	Retention  uint32   `protobuf:"varint,3,opt,name=retention" json:"retention,omitempty"`
-	Timestamp  uint32   `protobuf:"varint,4,opt,name=timestamp" json:"timestamp,omitempty"`
-	Value      float64  `protobuf:"fixed64,5,opt,name=value" json:"value,omitempty"`
-	Count      uint32   `protobuf:"varint,6,opt,name=count" json:"count,omitempty"`
-	Fields     []string `protobuf:"bytes,7,rep,name=fields" json:"fields,omitempty"`
+	Database  string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Timestamp uint32   `protobuf:"varint,2,opt,name=timestamp" json:"timestamp,omitempty"`
+	Value     float64  `protobuf:"fixed64,3,opt,name=value" json:"value,omitempty"`
+	Count     uint32   `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	Fields    []string `protobuf:"bytes,5,rep,name=fields" json:"fields,omitempty"`
 }
 
 func (m *PutReq) Reset()         { *m = PutReq{} }
@@ -268,13 +266,11 @@ func (m *PutRes) String() string { return proto.CompactTextString(m) }
 func (*PutRes) ProtoMessage()    {}
 
 type IncReq struct {
-	Database   string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
-	Resolution uint32   `protobuf:"varint,2,opt,name=resolution" json:"resolution,omitempty"`
-	Retention  uint32   `protobuf:"varint,3,opt,name=retention" json:"retention,omitempty"`
-	Timestamp  uint32   `protobuf:"varint,4,opt,name=timestamp" json:"timestamp,omitempty"`
-	Value      float64  `protobuf:"fixed64,5,opt,name=value" json:"value,omitempty"`
-	Count      uint32   `protobuf:"varint,6,opt,name=count" json:"count,omitempty"`
-	Fields     []string `protobuf:"bytes,7,rep,name=fields" json:"fields,omitempty"`
+	Database  string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	Timestamp uint32   `protobuf:"varint,2,opt,name=timestamp" json:"timestamp,omitempty"`
+	Value     float64  `protobuf:"fixed64,3,opt,name=value" json:"value,omitempty"`
+	Count     uint32   `protobuf:"varint,4,opt,name=count" json:"count,omitempty"`
+	Fields    []string `protobuf:"bytes,5,rep,name=fields" json:"fields,omitempty"`
 }
 
 func (m *IncReq) Reset()         { *m = IncReq{} }
@@ -289,13 +285,11 @@ func (m *IncRes) String() string { return proto.CompactTextString(m) }
 func (*IncRes) ProtoMessage()    {}
 
 type GetReq struct {
-	Database   string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
-	Resolution uint32   `protobuf:"varint,2,opt,name=resolution" json:"resolution,omitempty"`
-	Retention  uint32   `protobuf:"varint,3,opt,name=retention" json:"retention,omitempty"`
-	StartTime  uint32   `protobuf:"varint,4,opt,name=startTime" json:"startTime,omitempty"`
-	EndTime    uint32   `protobuf:"varint,5,opt,name=endTime" json:"endTime,omitempty"`
-	Fields     []string `protobuf:"bytes,6,rep,name=fields" json:"fields,omitempty"`
-	GroupBy    []bool   `protobuf:"varint,7,rep,packed,name=groupBy" json:"groupBy,omitempty"`
+	Database  string   `protobuf:"bytes,1,opt,name=database" json:"database,omitempty"`
+	StartTime uint32   `protobuf:"varint,2,opt,name=startTime" json:"startTime,omitempty"`
+	EndTime   uint32   `protobuf:"varint,3,opt,name=endTime" json:"endTime,omitempty"`
+	Fields    []string `protobuf:"bytes,4,rep,name=fields" json:"fields,omitempty"`
+	GroupBy   []bool   `protobuf:"varint,5,rep,packed,name=groupBy" json:"groupBy,omitempty"`
 }
 
 func (m *GetReq) Reset()         { *m = GetReq{} }

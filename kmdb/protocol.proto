@@ -35,7 +35,7 @@ message ResBatch {
 }
 
 message InfoReq {
-  // add fields if necessary
+  // no fields
 }
 
 message InfoRes {
@@ -43,71 +43,65 @@ message InfoRes {
 }
 
 message DBInfo {
-  string name = 1;
+  string database = 1;
   uint32 resolution = 2;
   uint32 retention = 3;
 }
 
 message OpenReq {
-  string name = 1;
+  string database = 1;
   uint32 resolution = 2;
-	uint32 epochTime = 3;
-  uint32 retention = 4;
-	uint32 maxROEpochs = 6;
-	uint32 maxRWEpochs = 7;
+  uint32 retention = 3;
+	uint32 epochTime = 4;
+	uint32 maxROEpochs = 5;
+	uint32 maxRWEpochs = 6;
 }
 
 message OpenRes {
-  // add fields if necessary
+  // no fields
 }
 
 message EditReq {
-  string name = 1;
+  string database = 1;
   uint32 retention = 2;
 	uint32 maxROEpochs = 3;
 	uint32 maxRWEpochs = 4;
 }
 
 message EditRes {
-  // add fields if necessary
+  // no fields
 }
 
 message PutReq {
   string database = 1;
-  uint32 resolution = 2;
-  uint32 retention = 3;
-  uint32 timestamp = 4;
-  double value = 5;
-  uint32 count = 6;
-  repeated string fields = 7;
+  uint32 timestamp = 2;
+  double value = 3;
+  uint32 count = 4;
+  repeated string fields = 5;
 }
 
 message PutRes {
-  // add fields if necessary
+  // no fields
 }
 
 message IncReq {
   string database = 1;
-  uint32 resolution = 2;
-  uint32 retention = 3;
-  uint32 timestamp = 4;
-  double value = 5;
-  uint32 count = 6;
-  repeated string fields = 7;
+  uint32 timestamp = 2;
+  double value = 3;
+  uint32 count = 4;
+  repeated string fields = 5;
 }
 
 message IncRes {
-  // add fields if necessary
+  // no fields
 }
 
 message GetReq {
   string database = 1;
-  uint32 resolution = 2;
-  uint32 retention = 3;
-  uint32 startTime = 4;
-  uint32 endTime = 5;
-  repeated string fields = 6;
-  repeated bool groupBy = 7 [packed=true];
+  uint32 startTime = 2;
+  uint32 endTime = 3;
+  repeated string fields = 4;
+  repeated bool groupBy = 5 [packed=true];
 }
 
 message GetRes {

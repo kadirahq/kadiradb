@@ -27,10 +27,10 @@ func init() {
 	}
 
 	openReq := &OpenReq{
-		Name:        "test-info",
+		Database:    "test-info",
 		Resolution:  60,
-		EpochTime:   3600,
 		Retention:   36000,
+		EpochTime:   3600,
 		MaxROEpochs: 2,
 		MaxRWEpochs: 2,
 	}
@@ -65,7 +65,7 @@ func TestInfo(t *testing.T) {
 
 	dbInfo := res.Databases[0]
 
-	if dbInfo.Name != "test-info" ||
+	if dbInfo.Database != "test-info" ||
 		dbInfo.Resolution != uint32(60) {
 		t.Fatal("wrong values")
 	}

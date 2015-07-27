@@ -341,7 +341,7 @@ func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
 	for name, db := range s.databases {
 		metadata := db.Info()
 		res.Databases[i] = &DBInfo{
-			Name:       name,
+			Database:   name,
 			Resolution: uint32(metadata.Resolution / 1e9),
 		}
 
@@ -354,15 +354,16 @@ func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
 func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 	res = &OpenRes{}
 
-	_, ok := s.databases[req.Name]
+	_, ok := s.databases[req.Database]
 	if !ok {
 		poinsCount := uint32(req.EpochTime / req.Resolution)
 		ssize := SegSize / (PointSize * poinsCount)
 
 		// FIXME: security issue: req.Name can use ../../
 		//        only allow alpha numeric characters and -
+		// TODO: store retention period
 		db, err := kdb.New(&kdb.Options{
-			Path:        path.Join(s.options.Path, req.Name),
+			Path:        path.Join(s.options.Path, req.Database),
 			Resolution:  int64(req.Resolution) * 1e9,
 			Duration:    int64(req.EpochTime) * 1e9,
 			PayloadSize: PointSize,
@@ -378,7 +379,7 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 
 		// TODO: update info response cache
 		// before that, cache info response
-		s.databases[req.Name] = db
+		s.databases[req.Database] = db
 	}
 
 	return res, nil
@@ -386,11 +387,12 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 
 func (s *server) edit(req *EditReq) (res *EditRes, err error) {
 	res = &EditRes{}
-	db, ok := s.databases[req.Name]
+	db, ok := s.databases[req.Database]
 	if !ok {
 		return nil, ErrDatabase
 	}
 
+	// TODO: update retention period
 	md := kdb.Metadata{
 		MaxROEpochs: req.MaxROEpochs,
 		MaxRWEpochs: req.MaxRWEpochs,
