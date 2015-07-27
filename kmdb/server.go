@@ -76,7 +76,7 @@ func NewServer(options *Options) (s Server, err error) {
 		return nil, err
 	}
 
-	now := time.Now().Unix()
+	now := time.Now().UnixNano()
 	fields := []string{`¯\_(ツ)_/¯`}
 
 	for _, finfo := range files {
@@ -117,7 +117,7 @@ func NewServer(options *Options) (s Server, err error) {
 }
 
 func (s *server) Listen() (err error) {
-	srv := srpc.NewServer(s.options.Path)
+	srv := srpc.NewServer(s.options.Address)
 	srv.SetHandler("info", s.Info)
 	srv.SetHandler("open", s.Open)
 	srv.SetHandler("edit", s.Edit)
@@ -126,7 +126,7 @@ func (s *server) Listen() (err error) {
 	srv.SetHandler("get", s.Get)
 	srv.SetHandler("batch", s.Batch)
 
-	log.Println("SRPCS:  listening on", s.options.Path)
+	log.Println("SRPCS:  listening on", s.options.Address)
 	return srv.Listen()
 }
 
