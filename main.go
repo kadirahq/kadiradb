@@ -35,7 +35,12 @@ func main() {
 		panic("invalid data path: '" + *path + "'")
 	}
 
-	s, err := kmdb.NewServer(*addr, *path, *write)
+	s, err := kmdb.NewServer(&kmdb.Options{
+		Path:     *path,
+		Address:  *addr,
+		Recovery: *write,
+	})
+
 	if err != nil {
 		panic(err)
 	}
