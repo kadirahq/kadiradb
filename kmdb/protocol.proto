@@ -4,6 +4,36 @@ package kmdb;
 //   Types
 // ---------
 
+message Request {
+  oneof request {
+    InfoReq infoReq = 1;
+    OpenReq openReq = 2;
+    EditReq editReq = 3;
+    PutReq putReq = 4;
+    IncReq incReq = 5;
+    GetReq getReq = 6;
+  }
+}
+
+message ReqBatch {
+  repeated Request batch = 1;
+}
+
+message Response {
+  oneof response {
+    InfoRes infoRes = 1;
+    OpenRes openRes = 2;
+    EditRes editRes = 3;
+    PutRes putRes = 4;
+    IncRes incRes = 5;
+    GetRes getRes = 6;
+  }
+}
+
+message ResBatch {
+  repeated Response batch = 1;
+}
+
 message InfoReq {
   // add fields if necessary
 }
@@ -14,17 +44,17 @@ message InfoRes {
 
 message DBInfo {
   string name = 1;
-  int64 resolution = 2;
+  uint32 resolution = 2;
+  uint32 retention = 3;
 }
 
 message OpenReq {
   string name = 1;
-  int64 resolution = 2;
-	int64 epochDuration = 3;
-	int64 payloadSize = 4;
-	int64 segmentLength = 5;
-	int64 maxROEpochs = 6;
-	int64 maxRWEpochs = 7;
+  uint32 resolution = 2;
+	uint32 epochTime = 3;
+  uint32 retention = 4;
+	uint32 maxROEpochs = 6;
+	uint32 maxRWEpochs = 7;
 }
 
 message OpenRes {
@@ -33,8 +63,9 @@ message OpenRes {
 
 message EditReq {
   string name = 1;
-	int64 maxROEpochs = 6;
-	int64 maxRWEpochs = 7;
+  uint32 retention = 2;
+	uint32 maxROEpochs = 3;
+	uint32 maxRWEpochs = 4;
 }
 
 message EditRes {
@@ -43,62 +74,44 @@ message EditRes {
 
 message PutReq {
   string database = 1;
-  int64 timestamp = 2;
-  double value = 3;
-  int64 count = 4;
-  repeated string fields = 5;
-}
-
-message PutReqBatch {
-  repeated PutReq batch = 1;
+  uint32 resolution = 2;
+  uint32 retention = 3;
+  uint32 timestamp = 4;
+  double value = 5;
+  uint32 count = 6;
+  repeated string fields = 7;
 }
 
 message PutRes {
   // add fields if necessary
 }
 
-message PutResBatch {
-  repeated PutRes batch = 1;
-}
-
 message IncReq {
   string database = 1;
-  int64 timestamp = 2;
-  double value = 3;
-  int64 count = 4;
-  repeated string fields = 5;
-}
-
-message IncReqBatch {
-  repeated IncReq batch = 1;
+  uint32 resolution = 2;
+  uint32 retention = 3;
+  uint32 timestamp = 4;
+  double value = 5;
+  uint32 count = 6;
+  repeated string fields = 7;
 }
 
 message IncRes {
   // add fields if necessary
 }
 
-message IncResBatch {
-  repeated IncRes batch = 1;
-}
-
 message GetReq {
   string database = 1;
-  int64 startTime = 2;
-  int64 endTime = 3;
-  repeated string fields = 4;
-  repeated bool groupBy = 5 [packed=true];
-}
-
-message GetReqBatch {
-  repeated GetReq batch = 1;
+  uint32 resolution = 2;
+  uint32 retention = 3;
+  uint32 startTime = 4;
+  uint32 endTime = 5;
+  repeated string fields = 6;
+  repeated bool groupBy = 7 [packed=true];
 }
 
 message GetRes {
-  repeated ResSeries data = 2;
-}
-
-message GetResBatch {
-  repeated GetRes batch = 1;
+  repeated ResSeries groups = 2;
 }
 
 message ResSeries {
@@ -108,5 +121,5 @@ message ResSeries {
 
 message ResPoint {
   double value = 1;
-  int64 count = 2;
+  uint32 count = 2;
 }

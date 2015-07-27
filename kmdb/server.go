@@ -10,83 +10,95 @@ import (
 	"path"
 	"time"
 
-	"github.com/gogo/protobuf/proto"
+	"github.com/golang/protobuf/proto"
 	"github.com/kadirahq/kadiradb-core/kdb"
 	"github.com/meteorhacks/simple-rpc-go/srpc"
 )
 
 const (
-	// DataDirPerm will be set as permissions if data directory is created.
+	// DataPerm will be set as permissions if data directory is created.
 	// if data path already exists, it will maintain the old value.
-	DataDirPerm = 0755
+	DataPerm = 0755
+
+	// SegSize is the maximum size of a segment file (default: 120MB)
+	SegSize = 120 * 1024 * 1024
+
+	// PointSize is the size of a single metric point in the filesystem
+	// Consists of a 64 bit `double` value and a 32 bit `uint32` count
+	PointSize = 12
 )
 
 var (
-	// DebugMode TODO
-	DebugMode = os.Getenv("debug") != ""
-	// ErrBatch TODO
-	ErrBatch = errors.New("batch failed")
-	// ErrDatabase TODO
+	// ErrDatabase is returned when the requested database is not found
 	ErrDatabase = errors.New("database not found")
 )
 
-// Server TODO
+// Server handles requests
 type Server interface {
 	Listen() (err error)
-	Info(req []byte) (res []byte, err error)
-	Open(req []byte) (res []byte, err error)
-	Edit(req []byte) (res []byte, err error)
-	Put(req []byte) (res []byte, err error)
-	Inc(req []byte) (res []byte, err error)
-	Get(req []byte) (res []byte, err error)
+	Info(reqData []byte) (resData []byte, err error)
+	Open(reqData []byte) (resData []byte, err error)
+	Edit(reqData []byte) (resData []byte, err error)
+	Put(reqData []byte) (resData []byte, err error)
+	Inc(reqData []byte) (resData []byte, err error)
+	Get(reqData []byte) (resData []byte, err error)
+	Batch(reqData []byte) (resData []byte, err error)
 }
 
 type server struct {
-	address   string
-	basePath  string
+	options   *Options
 	databases map[string]kdb.Database
 }
 
-// NewServer TODO
-func NewServer(address, basePath string, recovery bool) (_s Server, err error) {
-	s := &server{
-		address:   address,
-		basePath:  basePath,
-		databases: make(map[string]kdb.Database),
+// Options has server options
+type Options struct {
+	Path     string
+	Address  string
+	Recovery bool
+	Verbose  bool
+}
+
+// NewServer creates a server to handle requests
+func NewServer(options *Options) (s Server, err error) {
+	dbs := make(map[string]kdb.Database)
+	srv := &server{
+		options:   options,
+		databases: dbs,
 	}
 
-	err = os.MkdirAll(basePath, DataDirPerm)
+	err = os.MkdirAll(options.Path, DataPerm)
 	if err != nil {
 		return nil, err
 	}
 
-	files, err := ioutil.ReadDir(basePath)
+	files, err := ioutil.ReadDir(options.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	now := time.Now().UnixNano()
-	fields := []string{":P"}
+	fields := []string{`¯\_(ツ)_/¯`}
 
 	for _, finfo := range files {
 		fname := finfo.Name()
-		dbPath := path.Join(basePath, fname)
+		dbPath := path.Join(options.Path, fname)
 
-		db, err := kdb.Open(dbPath, recovery)
+		db, err := kdb.Open(dbPath, options.Recovery)
 		if err != nil {
-			log.Printf("KDB Open error: %s\n", err.Error())
+			log.Printf("KDB Open error: %s\n", err)
 			continue
 		}
 
-		dbmd := db.Metadata()
+		dbmd := db.Info()
 
-		if DebugMode {
-			log.Printf("KDB Metadata: %s %+v", fname, dbmd)
+		if options.Verbose {
+			log.Printf("KDB Info: %s %+v", fname, dbmd)
 		}
 
-		var i int64
+		var i uint32
 		for i = 0; i < dbmd.MaxRWEpochs; i++ {
-			start := now - i*dbmd.EpochDuration
+			ii64 := int64(i)
+			start := now - ii64*dbmd.Duration
 			end := start + dbmd.Resolution
 
 			// this will trigger a epoch load
@@ -98,47 +110,40 @@ func NewServer(address, basePath string, recovery bool) (_s Server, err error) {
 			}
 		}
 
-		s.databases[fname] = db
+		dbs[fname] = db
 	}
 
-	return s, nil
+	return srv, nil
 }
 
 func (s *server) Listen() (err error) {
-	srv := srpc.NewServer(s.address)
+	srv := srpc.NewServer(s.options.Address)
 	srv.SetHandler("info", s.Info)
 	srv.SetHandler("open", s.Open)
 	srv.SetHandler("edit", s.Edit)
 	srv.SetHandler("put", s.Put)
 	srv.SetHandler("inc", s.Inc)
 	srv.SetHandler("get", s.Get)
+	srv.SetHandler("batch", s.Batch)
 
-	log.Println("SRPCS:  listening on", s.address)
+	log.Println("SRPCS:  listening on", s.options.Address)
 	return srv.Listen()
 }
 
 func (s *server) Info(reqData []byte) (resData []byte, err error) {
-	if DebugMode {
+	if s.options.Verbose {
 		log.Println("> info:")
 	}
 
-	res := &InfoRes{}
-	res.Databases = make([]*DBInfo, len(s.databases))
-
-	var i int
-	for name, db := range s.databases {
-		metadata := db.Metadata()
-		res.Databases[i] = &DBInfo{
-			Name:       name,
-			Resolution: metadata.Resolution,
-		}
-
-		i++ // increment
+	res, err := s.info(nil)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
 	}
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
+		log.Printf("ERROR: %s\n", err)
 		return nil, err
 	}
 
@@ -147,42 +152,25 @@ func (s *server) Info(reqData []byte) (resData []byte, err error) {
 
 func (s *server) Open(reqData []byte) (resData []byte, err error) {
 	req := &OpenReq{}
-	res := &OpenRes{}
 	err = proto.Unmarshal(reqData, req)
 	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
+		log.Printf("ERROR: %s\n", err)
 		return nil, err
 	}
 
-	if DebugMode {
+	if s.options.Verbose {
 		log.Println("> open:", req)
 	}
 
-	_, ok := s.databases[req.Name]
-	if !ok {
-		// FIXME: security issue: req.Name can use ../../
-		//        only allow alpha numeric characters and -
-		db, err := kdb.New(&kdb.Options{
-			BasePath:      path.Join(s.basePath, req.Name),
-			Resolution:    req.Resolution,
-			EpochDuration: req.EpochDuration,
-			PayloadSize:   req.PayloadSize,
-			SegmentLength: req.SegmentLength,
-			MaxROEpochs:   req.MaxROEpochs,
-			MaxRWEpochs:   req.MaxRWEpochs,
-		})
-
-		if err != nil {
-			log.Printf("ERROR: %s\n", err.Error())
-			return nil, err
-		}
-
-		s.databases[req.Name] = db
+	res, err := s.open(req)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
 	}
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
+		log.Printf("ERROR: %s\n", err)
 		return nil, err
 	}
 
@@ -191,17 +179,213 @@ func (s *server) Open(reqData []byte) (resData []byte, err error) {
 
 func (s *server) Edit(reqData []byte) (resData []byte, err error) {
 	req := &EditReq{}
-	res := &EditRes{}
 	err = proto.Unmarshal(reqData, req)
 	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
+		log.Printf("ERROR: %s\n", err)
 		return nil, err
 	}
 
-	if DebugMode {
+	if s.options.Verbose {
 		log.Println("> edit:", req)
 	}
 
+	res, err := s.edit(req)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	resData, err = proto.Marshal(res)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	return resData, nil
+}
+
+func (s *server) Put(reqData []byte) (resData []byte, err error) {
+	req := &PutReq{}
+	err = proto.Unmarshal(reqData, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.options.Verbose {
+		log.Println("> put:", req)
+	}
+
+	res, err := s.put(req)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	resData, err = proto.Marshal(res)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	return resData, nil
+}
+
+func (s *server) Inc(reqData []byte) (resData []byte, err error) {
+	req := &IncReq{}
+	err = proto.Unmarshal(reqData, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.options.Verbose {
+		log.Println("> inc:", req)
+	}
+
+	res, err := s.inc(req)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	resData, err = proto.Marshal(res)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	return resData, nil
+}
+
+func (s *server) Get(reqData []byte) (resData []byte, err error) {
+	req := &GetReq{}
+	err = proto.Unmarshal(reqData, req)
+	if err != nil {
+		return nil, err
+	}
+
+	if s.options.Verbose {
+		log.Println("> get:", req)
+	}
+
+	res, err := s.get(req)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	resData, err = proto.Marshal(res)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	return resData, nil
+}
+
+func (s *server) Batch(reqData []byte) (resData []byte, err error) {
+	req := &ReqBatch{}
+	err = proto.Unmarshal(reqData, req)
+	if err != nil {
+		return nil, err
+	}
+
+	num := len(req.Batch)
+	res := &ResBatch{}
+	res.Batch = make([]*Response, num)
+
+	if s.options.Verbose {
+		log.Println("> get:", req)
+	}
+
+	for i, req := range req.Batch {
+		response := &Response{}
+		var err error
+
+		switch {
+		case req.InfoReq != nil:
+			response.InfoRes, err = s.info(req.InfoReq)
+		case req.OpenReq != nil:
+			response.OpenRes, err = s.open(req.OpenReq)
+		case req.EditReq != nil:
+			response.EditRes, err = s.edit(req.EditReq)
+		case req.PutReq != nil:
+			response.PutRes, err = s.put(req.PutReq)
+		case req.IncReq != nil:
+			response.IncRes, err = s.inc(req.IncReq)
+		case req.GetReq != nil:
+			response.GetRes, err = s.get(req.GetReq)
+		}
+
+		if err != nil {
+			log.Printf("ERROR: %s\n", err)
+			return nil, err
+		}
+
+		res.Batch[i] = response
+	}
+
+	resData, err = proto.Marshal(res)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	return resData, nil
+}
+
+func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
+	res = &InfoRes{}
+	res.Databases = make([]*DBInfo, len(s.databases))
+
+	var i int
+	for name, db := range s.databases {
+		metadata := db.Info()
+		res.Databases[i] = &DBInfo{
+			Name:       name,
+			Resolution: uint32(metadata.Resolution / 1e9),
+		}
+
+		i++ // increment
+	}
+
+	return res, nil
+}
+
+func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
+	res = &OpenRes{}
+
+	_, ok := s.databases[req.Name]
+	if !ok {
+		poinsCount := uint32(req.EpochTime / req.Resolution)
+		ssize := SegSize / (PointSize * poinsCount)
+
+		// FIXME: security issue: req.Name can use ../../
+		//        only allow alpha numeric characters and -
+		db, err := kdb.New(&kdb.Options{
+			Path:        path.Join(s.options.Path, req.Name),
+			Resolution:  int64(req.Resolution) * 1e9,
+			Duration:    int64(req.EpochTime) * 1e9,
+			PayloadSize: PointSize,
+			SegmentSize: ssize,
+			MaxROEpochs: req.MaxROEpochs,
+			MaxRWEpochs: req.MaxRWEpochs,
+		})
+
+		if err != nil {
+			log.Printf("ERROR: %s\n", err)
+			return nil, err
+		}
+
+		// TODO: update info response cache
+		// before that, cache info response
+		s.databases[req.Name] = db
+	}
+
+	return res, nil
+}
+
+func (s *server) edit(req *EditReq) (res *EditRes, err error) {
+	res = &EditRes{}
 	db, ok := s.databases[req.Name]
 	if !ok {
 		return nil, ErrDatabase
@@ -212,130 +396,13 @@ func (s *server) Edit(reqData []byte) (resData []byte, err error) {
 		MaxRWEpochs: req.MaxRWEpochs,
 	}
 
-	err = db.EditMetadata(&md)
+	err = db.Edit(&md)
 	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
+		log.Printf("ERROR: %s\n", err)
 		return nil, err
 	}
 
-	resData, err = proto.Marshal(res)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
-
-	return resData, nil
-}
-
-func (s *server) Put(reqData []byte) (resData []byte, err error) {
-	batch := &PutReqBatch{}
-	err = proto.Unmarshal(reqData, batch)
-	if err != nil {
-		return nil, err
-	}
-
-	if DebugMode {
-		log.Println("> put:", batch)
-	}
-
-	n := len(batch.Batch)
-	r := &PutResBatch{}
-	r.Batch = make([]*PutRes, n, n)
-	var batchError error
-
-	for i := 0; i < n; i++ {
-		r.Batch[i], err = s.put(batch.Batch[i])
-		if err != nil && batchError == nil {
-			log.Printf("ERROR: %s\n", err.Error())
-			batchError = ErrBatch
-		}
-	}
-
-	if batchError != nil {
-		return nil, batchError
-	}
-
-	resData, err = proto.Marshal(r)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
-
-	return resData, nil
-}
-
-func (s *server) Inc(reqData []byte) (resData []byte, err error) {
-	batch := &IncReqBatch{}
-	err = proto.Unmarshal(reqData, batch)
-	if err != nil {
-		return nil, err
-	}
-
-	if DebugMode {
-		log.Println("> put:", batch)
-	}
-
-	n := len(batch.Batch)
-	r := &IncResBatch{}
-	r.Batch = make([]*IncRes, n, n)
-	var batchError error
-
-	for i := 0; i < n; i++ {
-		r.Batch[i], err = s.inc(batch.Batch[i])
-		if err != nil && batchError == nil {
-			log.Printf("ERROR: %s\n", err.Error())
-			batchError = ErrBatch
-		}
-	}
-
-	if batchError != nil {
-		return nil, batchError
-	}
-
-	resData, err = proto.Marshal(r)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
-
-	return resData, nil
-}
-
-func (s *server) Get(reqData []byte) (resData []byte, err error) {
-	batch := &GetReqBatch{}
-	err = proto.Unmarshal(reqData, batch)
-	if err != nil {
-		return nil, err
-	}
-
-	if DebugMode {
-		log.Println("> put:", batch)
-	}
-
-	n := len(batch.Batch)
-	r := &GetResBatch{}
-	r.Batch = make([]*GetRes, n, n)
-	var batchError error
-
-	for i := 0; i < n; i++ {
-		r.Batch[i], err = s.get(batch.Batch[i])
-		if err != nil && batchError == nil {
-			log.Printf("ERROR: %s\n", err.Error())
-			batchError = ErrBatch
-		}
-	}
-
-	if batchError != nil {
-		return nil, batchError
-	}
-
-	resData, err = proto.Marshal(r)
-	if err != nil {
-		log.Printf("ERROR: %s\n", err.Error())
-		return nil, err
-	}
-
-	return resData, nil
+	return res, nil
 }
 
 func (s *server) put(req *PutReq) (res *PutRes, err error) {
@@ -347,7 +414,8 @@ func (s *server) put(req *PutReq) (res *PutRes, err error) {
 	}
 
 	payload := valToPld(req.Value, req.Count)
-	err = db.Put(req.Timestamp, req.Fields, payload)
+	timestamp := int64(req.Timestamp) * 1e9
+	err = db.Put(timestamp, req.Fields, payload)
 	if err != nil {
 		return nil, err
 	}
@@ -363,9 +431,10 @@ func (s *server) inc(req *IncReq) (res *IncRes, err error) {
 		return nil, ErrDatabase
 	}
 
-	metadata := db.Metadata()
-	endTime := req.Timestamp + metadata.Resolution
-	data, err := db.One(req.Timestamp, endTime, req.Fields)
+	metadata := db.Info()
+	timestamp := int64(req.Timestamp) * 1e9
+	endTime := timestamp + metadata.Resolution
+	data, err := db.One(timestamp, endTime, req.Fields)
 	if err != nil {
 		return nil, err
 	}
@@ -375,7 +444,7 @@ func (s *server) inc(req *IncReq) (res *IncRes, err error) {
 	val += req.Value
 	pld := valToPld(val, num)
 
-	err = db.Put(req.Timestamp, req.Fields, pld)
+	err = db.Put(timestamp, req.Fields, pld)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +460,9 @@ func (s *server) get(req *GetReq) (res *GetRes, err error) {
 		return nil, ErrDatabase
 	}
 
-	dataMap, err := db.Get(req.StartTime, req.EndTime, req.Fields)
+	startTime := int64(req.StartTime) * 1e9
+	endTime := int64(req.EndTime) * 1e9
+	dataMap, err := db.Get(startTime, endTime, req.Fields)
 	if err != nil {
 		return nil, err
 	}
@@ -402,7 +473,7 @@ func (s *server) get(req *GetReq) (res *GetRes, err error) {
 		ss.add(sr)
 	}
 
-	res.Data = ss.toResult()
+	res.Groups = ss.toResult()
 
 	return res, nil
 }
@@ -424,119 +495,16 @@ func (s *server) newSeriesSet(groupBy []bool) (ss *seriesSet) {
 	return &seriesSet{set, groupBy}
 }
 
-func valToPld(val float64, num int64) (pld []byte) {
+func valToPld(val float64, num uint32) (pld []byte) {
 	buf := new(bytes.Buffer)
 	binary.Write(buf, binary.LittleEndian, val)
 	binary.Write(buf, binary.LittleEndian, num)
 	return buf.Bytes()
 }
 
-func pldToVal(pld []byte) (val float64, num int64) {
+func pldToVal(pld []byte) (val float64, num uint32) {
 	buf := bytes.NewBuffer(pld)
 	binary.Read(buf, binary.LittleEndian, &val)
 	binary.Read(buf, binary.LittleEndian, &num)
 	return val, num
-}
-
-// Helper structs for building get results
-
-type point struct {
-	value float64
-	count int64
-}
-
-func (p *point) add(q *point) {
-	p.value += q.value
-	p.count += q.count
-}
-
-func (p *point) toResult() (item *ResPoint) {
-	item = &ResPoint{}
-	item.Value = p.value
-	item.Count = p.count
-	return item
-}
-
-type series struct {
-	fields []string
-	points []*point
-	data   [][]byte
-}
-
-func (sr *series) add(sn *series) {
-	count := len(sr.points)
-	for i := 0; i < count; i++ {
-		sr.points[i].add(sn.points[i])
-	}
-}
-
-func (sr *series) canMerge(sn *series) (can bool) {
-	count := len(sr.fields)
-	for i := 0; i < count; i++ {
-		if sr.fields[i] != sn.fields[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
-func (sr *series) toResult() (item *ResSeries) {
-	item = &ResSeries{}
-	item.Fields = sr.fields
-
-	count := len(sr.points)
-	item.Points = make([]*ResPoint, count, count)
-	for i, p := range sr.points {
-		point := p.toResult()
-		item.Points[i] = point
-	}
-
-	return item
-}
-
-type seriesSet struct {
-	items   []*series
-	groupBy []bool
-}
-
-func (ss *seriesSet) add(sn *series) {
-	ss.grpFields(sn)
-
-	count := len(ss.items)
-	for i := 0; i < count; i++ {
-		sr := ss.items[i]
-		if sr.canMerge(sn) {
-			sr.add(sn)
-			return
-		}
-	}
-
-	ss.items = append(ss.items, sn)
-}
-
-func (ss *seriesSet) grpFields(sn *series) {
-	count := len(sn.fields)
-	grouped := make([]string, count, count)
-
-	for i := 0; i < count; i++ {
-		if ss.groupBy[i] {
-			grouped[i] = sn.fields[i]
-		}
-	}
-
-	sn.fields = grouped
-}
-
-func (ss *seriesSet) toResult() (res []*ResSeries) {
-	count := len(ss.items)
-	res = make([]*ResSeries, count, count)
-
-	for i := 0; i < count; i++ {
-		sr := ss.items[i]
-		item := sr.toResult()
-		res[i] = item
-	}
-
-	return res
 }
