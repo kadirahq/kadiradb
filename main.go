@@ -5,7 +5,6 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"os"
 
 	_ "net/http/pprof"
 
@@ -25,7 +24,7 @@ const (
 func main() {
 	addr := flag.String("addr", DefaultAddr, "server address")
 	path := flag.String("path", "", "path to store data files")
-	init := flag.String("init", "", "path of initial dbs file")
+	init := flag.String("init", "", "json string to create initial dbs")
 	pprof := flag.Bool("pprof", false, "enable pprof")
 	write := flag.Bool("write", false, "enable recovery")
 
@@ -60,42 +59,27 @@ func main() {
 	log.Println(s.Listen())
 }
 
-func createDatabases(s kmdb.Server, name string) {
-	file, err := os.Open(name)
-	if err != nil {
-		panic(err)
-	}
-
-	info, err := file.Stat()
-	if err != nil {
-		panic(err)
-	}
-
-	sz := info.Size()
-	data := make([]byte, sz)
-
-	n, err := file.Read(data)
-	if err != nil {
-		panic(err)
-	} else if int64(n) != sz {
-		panic("error reading init file")
-	}
-
+func createDatabases(s kmdb.Server, init string) {
 	var reqs []*kmdb.OpenReq
-	err = json.Unmarshal(data, &reqs)
+	data := []byte(init)
+
+	err := json.Unmarshal(data, &reqs)
 	if err != nil {
-		panic(err)
+		log.Println(err)
+		return
 	}
 
 	for _, req := range reqs {
 		reqData, err := proto.Marshal(req)
 		if err != nil {
-			panic(err)
+			log.Println(err)
+			return
 		}
 
 		_, err = s.Open(reqData)
 		if err != nil {
-			panic(err)
+			log.Println(err)
+			return
 		}
 	}
 }
