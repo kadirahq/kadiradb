@@ -77,6 +77,11 @@ func (ss *seriesSet) add(sn *series) {
 
 func (ss *seriesSet) grpFields(sn *series) {
 	count := len(sn.fields)
+
+	if grpCount := len(ss.groupBy); grpCount < count {
+		count = grpCount
+	}
+
 	grouped := make([]string, count, count)
 
 	for i := 0; i < count; i++ {
