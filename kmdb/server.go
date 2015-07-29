@@ -43,6 +43,7 @@ type Server interface {
 	Inc(reqData []byte) (resData []byte, err error)
 	Get(reqData []byte) (resData []byte, err error)
 	Batch(reqData []byte) (resData []byte, err error)
+	Metrics(reqData []byte) (resData []byte, err error)
 }
 
 type server struct {
@@ -125,6 +126,7 @@ func (s *server) Listen() (err error) {
 	srv.SetHandler("inc", s.Inc)
 	srv.SetHandler("get", s.Get)
 	srv.SetHandler("batch", s.Batch)
+	srv.SetHandler("metrics", s.Metrics)
 
 	log.Println("SRPCS:  listening on", s.options.Address)
 	return srv.Listen()
@@ -322,6 +324,23 @@ func (s *server) Batch(reqData []byte) (resData []byte, err error) {
 		}
 
 		res.Batch[i] = response
+	}
+
+	resData, err = proto.Marshal(res)
+	if err != nil {
+		log.Printf("ERROR: %s\n", err)
+		return nil, err
+	}
+
+	return resData, nil
+}
+
+func (s *server) Metrics(reqData []byte) (resData []byte, err error) {
+	res := &MetricsRes{}
+	res.Databases = make(map[string]*kdb.Metrics)
+
+	for name, db := range s.databases {
+		res.Databases[name] = db.Metrics()
 	}
 
 	resData, err = proto.Marshal(res)

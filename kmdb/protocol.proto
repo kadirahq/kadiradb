@@ -1,6 +1,8 @@
 syntax = "proto3";
 package kmdb;
 
+import "github.com/kadirahq/kadiradb-core/kdb/protocol.proto";
+
 //   Types
 // ---------
 
@@ -116,4 +118,12 @@ message ResSeries {
 message ResPoint {
   double value = 1;
   uint32 count = 2;
+}
+
+message MetricsReq {
+  // no fields
+}
+
+message MetricsRes {
+  map<string, kdb.Metrics> databases = 1;
 }
