@@ -354,7 +354,7 @@ func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
 func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 	res = &OpenRes{}
 
-	_, ok := s.databases[req.Database]
+	db, ok := s.databases[req.Database]
 	if !ok {
 		poinsCount := uint32(req.EpochTime / req.Resolution)
 		ssize := SegSize / (PointSize * poinsCount)
@@ -380,6 +380,18 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 		// TODO: update info response cache
 		// before that, cache info response
 		s.databases[req.Database] = db
+	} else {
+		// TODO: update retention period
+		md := kdb.Metadata{
+			MaxROEpochs: req.MaxROEpochs,
+			MaxRWEpochs: req.MaxRWEpochs,
+		}
+
+		err = db.Edit(&md)
+		if err != nil {
+			log.Printf("ERROR: %s\n", err)
+			return nil, err
+		}
 	}
 
 	return res, nil
