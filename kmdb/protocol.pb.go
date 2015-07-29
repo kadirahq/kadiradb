@@ -28,10 +28,13 @@ It has these top-level messages:
 	GetRes
 	ResSeries
 	ResPoint
+	MetricsReq
+	MetricsRes
 */
 package kmdb
 
 import proto "github.com/golang/protobuf/proto"
+import kdb "github.com/kadirahq/kadiradb-core/kdb"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -335,3 +338,25 @@ type ResPoint struct {
 func (m *ResPoint) Reset()         { *m = ResPoint{} }
 func (m *ResPoint) String() string { return proto.CompactTextString(m) }
 func (*ResPoint) ProtoMessage()    {}
+
+type MetricsReq struct {
+}
+
+func (m *MetricsReq) Reset()         { *m = MetricsReq{} }
+func (m *MetricsReq) String() string { return proto.CompactTextString(m) }
+func (*MetricsReq) ProtoMessage()    {}
+
+type MetricsRes struct {
+	Databases map[string]*kdb.Metrics `protobuf:"bytes,1,rep,name=databases" json:"databases,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+}
+
+func (m *MetricsRes) Reset()         { *m = MetricsRes{} }
+func (m *MetricsRes) String() string { return proto.CompactTextString(m) }
+func (*MetricsRes) ProtoMessage()    {}
+
+func (m *MetricsRes) GetDatabases() map[string]*kdb.Metrics {
+	if m != nil {
+		return m.Databases
+	}
+	return nil
+}
