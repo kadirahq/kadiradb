@@ -9,7 +9,6 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/gogo/protobuf/proto"
-	"github.com/kadirahq/kadiradb-metrics/kmdb"
 )
 
 const (
@@ -38,7 +37,7 @@ func main() {
 		panic("invalid data path: '" + *path + "'")
 	}
 
-	s, err := kmdb.NewServer(&kmdb.Options{
+	s, err := NewServer(&Options{
 		Path:     *path,
 		Address:  *addr,
 		Recovery: *write,
@@ -59,8 +58,8 @@ func main() {
 	log.Println(s.Listen())
 }
 
-func createDatabases(s kmdb.Server, init string) {
-	var reqs []*kmdb.OpenReq
+func createDatabases(s Server, init string) {
+	var reqs []*OpenReq
 	data := []byte(init)
 
 	err := json.Unmarshal(data, &reqs)

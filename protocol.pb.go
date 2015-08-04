@@ -3,7 +3,7 @@
 // DO NOT EDIT!
 
 /*
-Package kmdb is a generated protocol buffer package.
+Package main is a generated protocol buffer package.
 
 It is generated from these files:
 	protocol.proto
@@ -31,10 +31,10 @@ It has these top-level messages:
 	MetricsReq
 	MetricsRes
 */
-package kmdb
+package main
 
 import proto "github.com/golang/protobuf/proto"
-import kdb "github.com/kadirahq/kadiradb-core/kdb"
+import kadiyadb "github.com/kadirahq/kadiyadb"
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -347,14 +347,14 @@ func (m *MetricsReq) String() string { return proto.CompactTextString(m) }
 func (*MetricsReq) ProtoMessage()    {}
 
 type MetricsRes struct {
-	Databases map[string]*kdb.Metrics `protobuf:"bytes,1,rep,name=databases" json:"databases,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Databases map[string]*kadiyadb.Metrics `protobuf:"bytes,1,rep,name=databases" json:"databases,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
 }
 
 func (m *MetricsRes) Reset()         { *m = MetricsRes{} }
 func (m *MetricsRes) String() string { return proto.CompactTextString(m) }
 func (*MetricsRes) ProtoMessage()    {}
 
-func (m *MetricsRes) GetDatabases() map[string]*kdb.Metrics {
+func (m *MetricsRes) GetDatabases() map[string]*kadiyadb.Metrics {
 	if m != nil {
 		return m.Databases
 	}

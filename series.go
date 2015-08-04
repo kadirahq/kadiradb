@@ -1,4 +1,4 @@
-package kmdb
+package main
 
 type point struct {
 	value float64

@@ -1,4 +1,4 @@
-package kmdb
+package main
 
 import (
 	"bytes"
@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/kadirahq/kadiradb-core/kdb"
+	"github.com/kadirahq/kadiyadb"
 	"github.com/meteorhacks/simple-rpc-go/srpc"
 )
 
@@ -48,7 +48,7 @@ type Server interface {
 
 type server struct {
 	options   *Options
-	databases map[string]kdb.Database
+	databases map[string]kadiyadb.Database
 }
 
 // Options has server options
@@ -61,7 +61,7 @@ type Options struct {
 
 // NewServer creates a server to handle requests
 func NewServer(options *Options) (s Server, err error) {
-	dbs := make(map[string]kdb.Database)
+	dbs := make(map[string]kadiyadb.Database)
 	srv := &server{
 		options:   options,
 		databases: dbs,
@@ -84,7 +84,7 @@ func NewServer(options *Options) (s Server, err error) {
 		fname := finfo.Name()
 		dbPath := path.Join(options.Path, fname)
 
-		db, err := kdb.Open(dbPath, options.Recovery)
+		db, err := kadiyadb.Open(dbPath, options.Recovery)
 		if err != nil {
 			log.Printf("KDB Open error: %s\n", err)
 			continue
@@ -337,7 +337,7 @@ func (s *server) Batch(reqData []byte) (resData []byte, err error) {
 
 func (s *server) Metrics(reqData []byte) (resData []byte, err error) {
 	res := &MetricsRes{}
-	res.Databases = make(map[string]*kdb.Metrics)
+	res.Databases = make(map[string]*kadiyadb.Metrics)
 
 	for name, db := range s.databases {
 		res.Databases[name] = db.Metrics()
@@ -381,7 +381,7 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 		// FIXME: security issue: req.Name can use ../../
 		//        only allow alpha numeric characters and -
 		// TODO: store retention period
-		db, err := kdb.New(&kdb.Options{
+		db, err := kadiyadb.New(&kadiyadb.Options{
 			Path:        path.Join(s.options.Path, req.Database),
 			Resolution:  int64(req.Resolution) * 1e9,
 			Duration:    int64(req.EpochTime) * 1e9,
@@ -401,7 +401,7 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 		s.databases[req.Database] = db
 	} else {
 		// TODO: update retention period
-		md := kdb.Metadata{
+		md := kadiyadb.Metadata{
 			MaxROEpochs: req.MaxROEpochs,
 			MaxRWEpochs: req.MaxRWEpochs,
 		}
@@ -424,7 +424,7 @@ func (s *server) edit(req *EditReq) (res *EditRes, err error) {
 	}
 
 	// TODO: update retention period
-	md := kdb.Metadata{
+	md := kadiyadb.Metadata{
 		MaxROEpochs: req.MaxROEpochs,
 		MaxRWEpochs: req.MaxRWEpochs,
 	}

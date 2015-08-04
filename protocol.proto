@@ -1,7 +1,7 @@
 syntax = "proto3";
-package kmdb;
+package main;
 
-import "github.com/kadirahq/kadiradb-core/kdb/protocol.proto";
+import "github.com/kadirahq/kadiyadb/protocol.proto";
 
 //   Types
 // ---------
@@ -125,5 +125,5 @@ message MetricsReq {
 }
 
 message MetricsRes {
-  map<string, kdb.Metrics> databases = 1;
+  map<string, kadiyadb.Metrics> databases = 1;
 }

@@ -1,6 +1,6 @@
-# KadiraDB Metrics
+# KadiraDB
 
-KadiraDB Metrics is a time-series database designed for storing real-time metrics. 
+KadiraDB is a time-series database designed for storing real-time metrics.
 
 
 
@@ -18,7 +18,7 @@ Use this command to start the server. It will start the server and store all dat
   -p 19000:19000 \
   -v /tmp/data:/data \
   --cap-add=IPC_LOCK \
-  kadirahq/kadiradb-metrics:latest
+  kadirahq/kadiradb:latest
 ❯ docker logs -f kadiradb
 ```
 
@@ -28,6 +28,5 @@ New Databases can be created using the database shell, one of our client librari
 
 ## Database Clients
 
-- [Golang](https://github.com/kadirahq/kadiradb-metrics-go)
-- [NodeJS](https://github.com/kadirahq/kadiradb-metrics-node) + interactive shell
-
+- [Golang](https://github.com/kadirahq/kadiradb-go)
+- [NodeJS](https://github.com/kadirahq/kadiradb-node)

@@ -1,4 +1,4 @@
-package kmdb
+package main
 
 import (
 	"os/exec"
