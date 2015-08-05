@@ -381,6 +381,7 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 		db, err := kadiyadb.New(&kadiyadb.Options{
 			Path:        path.Join(s.options.Path, req.Database),
 			Resolution:  int64(req.Resolution) * 1e9,
+			Retention:   int64(req.Retention) * 1e9,
 			Duration:    int64(req.EpochTime) * 1e9,
 			PayloadSize: PointSize,
 			SegmentSize: ssize,
@@ -421,8 +422,8 @@ func (s *server) edit(req *EditReq) (res *EditRes, err error) {
 		return nil, ErrDatabase
 	}
 
-	// TODO: update retention period
 	md := kadiyadb.Metadata{
+		Retention:   int64(req.Retention) * 1e9,
 		MaxROEpochs: req.MaxROEpochs,
 		MaxRWEpochs: req.MaxRWEpochs,
 	}
