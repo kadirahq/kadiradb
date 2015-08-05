@@ -64,26 +64,26 @@ func createDatabases(s Server, init string) {
 
 	err := json.Unmarshal(data, &reqs)
 	if err != nil {
-		log.Println(err)
+		Logger.Error(err)
 		return
 	}
 
 	for _, req := range reqs {
 		reqData, err := proto.Marshal(req)
 		if err != nil {
-			log.Println(err)
+			Logger.Error(err)
 			return
 		}
 
 		_, err = s.Open(reqData)
 		if err != nil {
-			log.Println(err)
+			Logger.Error(err)
 			return
 		}
 	}
 }
 
 func startPPROF() {
-	log.Println("PPROF:  listening on ", PPROFAddr)
-	log.Println(http.ListenAndServe(PPROFAddr, nil))
+	Logger.Log("PPROF:  listening on ", PPROFAddr)
+	Logger.Log(http.ListenAndServe(PPROFAddr, nil))
 }
