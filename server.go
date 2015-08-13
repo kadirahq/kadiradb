@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/kadirahq/kadiradb/utils/logger"
+	"github.com/kadirahq/go-tools/logger"
 	"github.com/kadirahq/kadiyadb"
 	"github.com/meteorhacks/simple-rpc-go/srpc"
 )
