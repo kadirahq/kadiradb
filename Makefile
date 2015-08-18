@@ -3,7 +3,7 @@ kadiradb: clean
 	gox -osarch="linux/amd64" -output="build/kadiradb"
 	docker build -t kadirahq/kadiradb ./
 
-publish:
+publish: kadiradb
 	docker push kadirahq/kadiradb:latest
 
 clean:
