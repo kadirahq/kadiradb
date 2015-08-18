@@ -1,10 +1,10 @@
 
-build:
-	rm -rf build
+kadiradb: clean
 	gox -osarch="linux/amd64" -output="build/kadiradb"
-
-docker: build
 	docker build -t kadirahq/kadiradb ./
 
-publish: docker
+publish:
 	docker push kadirahq/kadiradb:latest
+
+clean:
+	rm -rf build
