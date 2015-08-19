@@ -89,6 +89,10 @@ func NewServer(options *Options) (s Server, err error) {
 		fname := finfo.Name()
 		dbPath := path.Join(options.Path, fname)
 
+		if fname == InitFile {
+			continue
+		}
+
 		db, err := kadiyadb.Open(dbPath, options.Recovery)
 		if err != nil {
 			Logger.Error(err)
