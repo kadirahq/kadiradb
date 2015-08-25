@@ -1,6 +1,6 @@
 
 kadiradb: clean
-	gox -osarch="linux/amd64" -output="build/kadiradb"
+	GOOS="linux" GOARCH="amd64" go build -o build/kadiradb -i -a .
 	docker build -t kadirahq/kadiradb ./
 
 publish: kadiradb
