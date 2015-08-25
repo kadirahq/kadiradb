@@ -99,7 +99,12 @@ func NewServer(options *Options) (s Server, err error) {
 			continue
 		}
 
-		info := db.Info()
+		info, err := db.Info()
+		if err != nil {
+			Logger.Error(err)
+			continue
+		}
+
 		Logger.Trace("database info", fname, info)
 
 		var i uint32
@@ -341,7 +346,13 @@ func (s *server) Metrics(reqData []byte) (resData []byte, err error) {
 	res.Databases = make(map[string]*kadiyadb.Metrics)
 
 	for name, db := range s.databases {
-		res.Databases[name] = db.Metrics()
+		metrics, err := db.Metrics()
+		if err != nil {
+			Logger.Error(err)
+			continue
+		}
+
+		res.Databases[name] = metrics
 	}
 
 	resData, err = proto.Marshal(res)
@@ -359,7 +370,12 @@ func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
 
 	var i int
 	for name, db := range s.databases {
-		metadata := db.Info()
+		metadata, err := db.Info()
+		if err != nil {
+			Logger.Error(err)
+			continue
+		}
+
 		res.Databases[i] = &DBInfo{
 			Database:   name,
 			Resolution: uint32(metadata.Resolution / 1e9),
@@ -398,17 +414,10 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 			return nil, err
 		}
 
-		// TODO: update info response cache
-		// before that, cache info response
 		s.databases[req.Database] = db
 	} else {
 		// TODO: update retention period
-		md := kadiyadb.Metadata{
-			MaxROEpochs: req.MaxROEpochs,
-			MaxRWEpochs: req.MaxRWEpochs,
-		}
-
-		err = db.Edit(&md)
+		err = db.Edit(req.MaxROEpochs, req.MaxRWEpochs)
 		if err != nil {
 			Logger.Trace(err)
 			return nil, err
@@ -426,13 +435,8 @@ func (s *server) edit(req *EditReq) (res *EditRes, err error) {
 		return nil, ErrDatabase
 	}
 
-	md := kadiyadb.Metadata{
-		Retention:   int64(req.Retention) * 1e9,
-		MaxROEpochs: req.MaxROEpochs,
-		MaxRWEpochs: req.MaxRWEpochs,
-	}
-
-	err = db.Edit(&md)
+	// TODO: update retention period
+	err = db.Edit(req.MaxROEpochs, req.MaxRWEpochs)
 	if err != nil {
 		Logger.Trace(err)
 		return nil, err
@@ -470,7 +474,12 @@ func (s *server) inc(req *IncReq) (res *IncRes, err error) {
 		return nil, ErrDatabase
 	}
 
-	metadata := db.Info()
+	metadata, err := db.Info()
+	if err != nil {
+		Logger.Trace(err)
+		return nil, err
+	}
+
 	timestamp := int64(req.Timestamp) * 1e9
 	endTime := timestamp + metadata.Resolution
 	data, err := db.One(timestamp, endTime, req.Fields)
