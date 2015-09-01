@@ -10,6 +10,7 @@ import (
 	_ "net/http/pprof"
 
 	"github.com/gogo/protobuf/proto"
+	"github.com/kadirahq/go-tools/logger"
 )
 
 const (
@@ -27,6 +28,11 @@ const (
 	// PPROFAddr is the address the pprof server will listen to
 	// Make sure this port cannot be accessed from outside
 	PPROFAddr = ":6060"
+)
+
+var (
+	// Logger logs stuff
+	Logger = logger.New("kadiradb")
 )
 
 func main() {
@@ -60,7 +66,7 @@ func main() {
 	}
 
 	go startPPROFServer()
-	Logger.Log(s.Listen())
+	Logger.Info(s.Listen())
 }
 
 func load(s Server, data []byte) {
@@ -88,6 +94,6 @@ func load(s Server, data []byte) {
 }
 
 func startPPROFServer() {
-	Logger.Log("PPROF: listening on: " + PPROFAddr)
-	Logger.Log(http.ListenAndServe(PPROFAddr, nil))
+	Logger.Info("PPROF: listening on: " + PPROFAddr)
+	Logger.Info(http.ListenAndServe(PPROFAddr, nil))
 }

@@ -10,6 +10,7 @@ import (
 	"path"
 	"time"
 
+	goerr "github.com/go-errors/errors"
 	"github.com/golang/protobuf/proto"
 	"github.com/kadirahq/go-tools/logger"
 	"github.com/kadirahq/kadiyadb"
@@ -32,9 +33,6 @@ const (
 var (
 	// ErrDatabase is returned when the requested database is not found
 	ErrDatabase = errors.New("database not found")
-
-	// Logger logs stuff
-	Logger = logger.New("KADIRADB")
 )
 
 // Server handles requests
@@ -53,6 +51,7 @@ type Server interface {
 type server struct {
 	options   *Options
 	databases map[string]kadiyadb.Database
+	logger    *logger.Logger
 }
 
 // Options has server options
@@ -68,18 +67,17 @@ func NewServer(options *Options) (s Server, err error) {
 	srv := &server{
 		options:   options,
 		databases: dbs,
+		logger:    Logger.New(options.Path),
 	}
 
 	err = os.MkdirAll(options.Path, DataPerm)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	files, err := ioutil.ReadDir(options.Path)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	now := time.Now().UnixNano()
@@ -95,17 +93,15 @@ func NewServer(options *Options) (s Server, err error) {
 
 		db, err := kadiyadb.Open(dbPath, options.Recovery)
 		if err != nil {
-			Logger.Error(err)
+			srv.logger.Error(err)
 			continue
 		}
 
 		info, err := db.Info()
 		if err != nil {
-			Logger.Error(err)
+			srv.logger.Error(err)
 			continue
 		}
-
-		Logger.Trace("database info", fname, info)
 
 		var i uint32
 		for i = 0; i < info.MaxRWEpochs; i++ {
@@ -117,10 +113,9 @@ func NewServer(options *Options) (s Server, err error) {
 			// also acts as a db health check
 			_, err = db.One(start, end, fields)
 			if err != nil {
-				Logger.Trace(err)
 
 				if err := db.Close(); err != nil {
-					Logger.Error(err)
+					srv.logger.Error(err)
 				}
 
 				continue
@@ -149,18 +144,15 @@ func (s *server) Listen() (err error) {
 }
 
 func (s *server) Info(reqData []byte) (resData []byte, err error) {
-	Logger.Trace("> info:")
 
 	res, err := s.info(nil)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return resData, nil
@@ -170,22 +162,17 @@ func (s *server) Open(reqData []byte) (resData []byte, err error) {
 	req := &OpenReq{}
 	err = proto.Unmarshal(reqData, req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
-
-	Logger.Trace("> open:", req)
 
 	res, err := s.open(req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return resData, nil
@@ -195,22 +182,17 @@ func (s *server) Edit(reqData []byte) (resData []byte, err error) {
 	req := &EditReq{}
 	err = proto.Unmarshal(reqData, req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
-
-	Logger.Trace("> edit:", req)
 
 	res, err := s.edit(req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return resData, nil
@@ -220,22 +202,17 @@ func (s *server) Put(reqData []byte) (resData []byte, err error) {
 	req := &PutReq{}
 	err = proto.Unmarshal(reqData, req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
-
-	Logger.Trace("> put:", req)
 
 	res, err := s.put(req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return resData, nil
@@ -245,22 +222,17 @@ func (s *server) Inc(reqData []byte) (resData []byte, err error) {
 	req := &IncReq{}
 	err = proto.Unmarshal(reqData, req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
-
-	Logger.Trace("> inc:", req)
 
 	res, err := s.inc(req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return resData, nil
@@ -270,22 +242,17 @@ func (s *server) Get(reqData []byte) (resData []byte, err error) {
 	req := &GetReq{}
 	err = proto.Unmarshal(reqData, req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
-
-	Logger.Trace("> get:", req)
 
 	res, err := s.get(req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return resData, nil
@@ -295,15 +262,12 @@ func (s *server) Batch(reqData []byte) (resData []byte, err error) {
 	req := &ReqBatch{}
 	err = proto.Unmarshal(reqData, req)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	num := len(req.Batch)
 	res := &ResBatch{}
 	res.Batch = make([]*Response, num)
-
-	Logger.Trace("> get:", req)
 
 	for i, req := range req.Batch {
 		response := &Response{}
@@ -325,8 +289,7 @@ func (s *server) Batch(reqData []byte) (resData []byte, err error) {
 		}
 
 		if err != nil {
-			Logger.Trace(err)
-			return nil, err
+			return nil, goerr.Wrap(err, 0)
 		}
 
 		res.Batch[i] = response
@@ -334,8 +297,7 @@ func (s *server) Batch(reqData []byte) (resData []byte, err error) {
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return resData, nil
@@ -348,7 +310,7 @@ func (s *server) Metrics(reqData []byte) (resData []byte, err error) {
 	for name, db := range s.databases {
 		metrics, err := db.Metrics()
 		if err != nil {
-			Logger.Error(err)
+			s.logger.Error(err)
 			continue
 		}
 
@@ -357,8 +319,7 @@ func (s *server) Metrics(reqData []byte) (resData []byte, err error) {
 
 	resData, err = proto.Marshal(res)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return resData, nil
@@ -372,7 +333,7 @@ func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
 	for name, db := range s.databases {
 		metadata, err := db.Info()
 		if err != nil {
-			Logger.Error(err)
+			s.logger.Error(err)
 			continue
 		}
 
@@ -410,8 +371,7 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 		})
 
 		if err != nil {
-			Logger.Trace(err)
-			return nil, err
+			return nil, goerr.Wrap(err, 0)
 		}
 
 		s.databases[req.Database] = db
@@ -419,8 +379,7 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 		// TODO: update retention period
 		err = db.Edit(req.MaxROEpochs, req.MaxRWEpochs)
 		if err != nil {
-			Logger.Trace(err)
-			return nil, err
+			return nil, goerr.Wrap(err, 0)
 		}
 	}
 
@@ -431,15 +390,13 @@ func (s *server) edit(req *EditReq) (res *EditRes, err error) {
 	res = &EditRes{}
 	db, ok := s.databases[req.Database]
 	if !ok {
-		Logger.Trace(ErrDatabase)
-		return nil, ErrDatabase
+		return nil, goerr.Wrap(ErrDatabase, 0)
 	}
 
 	// TODO: update retention period
 	err = db.Edit(req.MaxROEpochs, req.MaxRWEpochs)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return res, nil
@@ -450,16 +407,14 @@ func (s *server) put(req *PutReq) (res *PutRes, err error) {
 
 	db, ok := s.databases[req.Database]
 	if !ok {
-		Logger.Trace(ErrDatabase)
-		return nil, ErrDatabase
+		return nil, goerr.Wrap(ErrDatabase, 0)
 	}
 
 	payload := valToPld(req.Value, req.Count)
 	timestamp := int64(req.Timestamp) * 1e9
 	err = db.Put(timestamp, req.Fields, payload)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return res, nil
@@ -470,22 +425,19 @@ func (s *server) inc(req *IncReq) (res *IncRes, err error) {
 
 	db, ok := s.databases[req.Database]
 	if !ok {
-		Logger.Trace(ErrDatabase)
-		return nil, ErrDatabase
+		return nil, goerr.Wrap(ErrDatabase, 0)
 	}
 
 	metadata, err := db.Info()
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	timestamp := int64(req.Timestamp) * 1e9
 	endTime := timestamp + metadata.Resolution
 	data, err := db.One(timestamp, endTime, req.Fields)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	val, num := pldToVal(data[0])
@@ -495,8 +447,7 @@ func (s *server) inc(req *IncReq) (res *IncRes, err error) {
 
 	err = db.Put(timestamp, req.Fields, pld)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	return res, nil
@@ -507,16 +458,14 @@ func (s *server) get(req *GetReq) (res *GetRes, err error) {
 
 	db, ok := s.databases[req.Database]
 	if !ok {
-		Logger.Trace(ErrDatabase)
-		return nil, ErrDatabase
+		return nil, goerr.Wrap(ErrDatabase, 0)
 	}
 
 	startTime := int64(req.StartTime) * 1e9
 	endTime := int64(req.EndTime) * 1e9
 	dataMap, err := db.Get(startTime, endTime, req.Fields)
 	if err != nil {
-		Logger.Trace(err)
-		return nil, err
+		return nil, goerr.Wrap(err, 0)
 	}
 
 	ss := s.newSeriesSet(req.GroupBy)
