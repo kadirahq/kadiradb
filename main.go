@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path"
+	"time"
 
 	_ "net/http/pprof"
 
@@ -70,6 +71,7 @@ func main() {
 }
 
 func load(s Server, data []byte) {
+	defer Logger.Time(time.Now(), 100*time.Millisecond, "load")
 	var reqs []*OpenReq
 
 	err := json.Unmarshal(data, &reqs)

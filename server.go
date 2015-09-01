@@ -12,7 +12,6 @@ import (
 
 	goerr "github.com/go-errors/errors"
 	"github.com/golang/protobuf/proto"
-	"github.com/kadirahq/go-tools/logger"
 	"github.com/kadirahq/kadiyadb"
 	"github.com/meteorhacks/simple-rpc-go/srpc"
 )
@@ -51,7 +50,6 @@ type Server interface {
 type server struct {
 	options   *Options
 	databases map[string]kadiyadb.Database
-	logger    *logger.Logger
 }
 
 // Options has server options
@@ -63,11 +61,11 @@ type Options struct {
 
 // NewServer creates a server to handle requests
 func NewServer(options *Options) (s Server, err error) {
+	defer Logger.Time(time.Now(), 100*time.Millisecond, "NewServer")
 	dbs := make(map[string]kadiyadb.Database)
 	srv := &server{
 		options:   options,
 		databases: dbs,
-		logger:    Logger.New(options.Path),
 	}
 
 	err = os.MkdirAll(options.Path, DataPerm)
@@ -93,13 +91,13 @@ func NewServer(options *Options) (s Server, err error) {
 
 		db, err := kadiyadb.Open(dbPath, options.Recovery)
 		if err != nil {
-			srv.logger.Error(err)
+			Logger.Error(err)
 			continue
 		}
 
 		info, err := db.Info()
 		if err != nil {
-			srv.logger.Error(err)
+			Logger.Error(err)
 			continue
 		}
 
@@ -115,7 +113,7 @@ func NewServer(options *Options) (s Server, err error) {
 			if err != nil {
 
 				if err := db.Close(); err != nil {
-					srv.logger.Error(err)
+					Logger.Error(err)
 				}
 
 				continue
@@ -310,7 +308,7 @@ func (s *server) Metrics(reqData []byte) (resData []byte, err error) {
 	for name, db := range s.databases {
 		metrics, err := db.Metrics()
 		if err != nil {
-			s.logger.Error(err)
+			Logger.Error(err)
 			continue
 		}
 
@@ -326,6 +324,7 @@ func (s *server) Metrics(reqData []byte) (resData []byte, err error) {
 }
 
 func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
+	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.info")
 	res = &InfoRes{}
 	res.Databases = make([]*DBInfo, len(s.databases))
 
@@ -333,7 +332,7 @@ func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
 	for name, db := range s.databases {
 		metadata, err := db.Info()
 		if err != nil {
-			s.logger.Error(err)
+			Logger.Error(err)
 			continue
 		}
 
@@ -349,6 +348,7 @@ func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
 }
 
 func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
+	defer Logger.Time(time.Now(), 10*time.Second, "server.open")
 	res = &OpenRes{}
 
 	db, ok := s.databases[req.Database]
@@ -358,7 +358,6 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 
 		// FIXME: security issue: req.Name can use ../../
 		//        only allow alpha numeric characters and -
-		// TODO: store retention period
 		db, err := kadiyadb.New(&kadiyadb.Options{
 			Path:        path.Join(s.options.Path, req.Database),
 			Resolution:  int64(req.Resolution) * 1e9,
@@ -387,6 +386,7 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 }
 
 func (s *server) edit(req *EditReq) (res *EditRes, err error) {
+	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.edit")
 	res = &EditRes{}
 	db, ok := s.databases[req.Database]
 	if !ok {
@@ -403,6 +403,7 @@ func (s *server) edit(req *EditReq) (res *EditRes, err error) {
 }
 
 func (s *server) put(req *PutReq) (res *PutRes, err error) {
+	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.put")
 	res = &PutRes{}
 
 	db, ok := s.databases[req.Database]
@@ -421,6 +422,7 @@ func (s *server) put(req *PutReq) (res *PutRes, err error) {
 }
 
 func (s *server) inc(req *IncReq) (res *IncRes, err error) {
+	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.inc")
 	res = &IncRes{}
 
 	db, ok := s.databases[req.Database]
@@ -454,6 +456,7 @@ func (s *server) inc(req *IncReq) (res *IncRes, err error) {
 }
 
 func (s *server) get(req *GetReq) (res *GetRes, err error) {
+	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.get")
 	res = &GetRes{}
 
 	db, ok := s.databases[req.Database]
