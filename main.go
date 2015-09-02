@@ -71,7 +71,7 @@ func main() {
 }
 
 func load(s Server, data []byte) {
-	defer Logger.Time(time.Now(), 100*time.Millisecond, "load")
+	defer Logger.Time(time.Now(), time.Second, "load")
 	var reqs []*OpenReq
 
 	err := json.Unmarshal(data, &reqs)

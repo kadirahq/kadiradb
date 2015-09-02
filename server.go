@@ -61,7 +61,7 @@ type Options struct {
 
 // NewServer creates a server to handle requests
 func NewServer(options *Options) (s Server, err error) {
-	defer Logger.Time(time.Now(), 100*time.Millisecond, "NewServer")
+	defer Logger.Time(time.Now(), time.Second, "NewServer")
 	dbs := make(map[string]kadiyadb.Database)
 	srv := &server{
 		options:   options,
@@ -324,7 +324,7 @@ func (s *server) Metrics(reqData []byte) (resData []byte, err error) {
 }
 
 func (s *server) info(req *InfoReq) (res *InfoRes, err error) {
-	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.info")
+	defer Logger.Time(time.Now(), time.Second, "server.info")
 	res = &InfoRes{}
 	res.Databases = make([]*DBInfo, len(s.databases))
 
@@ -386,7 +386,7 @@ func (s *server) open(req *OpenReq) (res *OpenRes, err error) {
 }
 
 func (s *server) edit(req *EditReq) (res *EditRes, err error) {
-	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.edit")
+	defer Logger.Time(time.Now(), time.Second, "server.edit")
 	res = &EditRes{}
 	db, ok := s.databases[req.Database]
 	if !ok {
@@ -403,7 +403,7 @@ func (s *server) edit(req *EditReq) (res *EditRes, err error) {
 }
 
 func (s *server) put(req *PutReq) (res *PutRes, err error) {
-	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.put")
+	defer Logger.Time(time.Now(), time.Second, "server.put")
 	res = &PutRes{}
 
 	db, ok := s.databases[req.Database]
@@ -422,7 +422,7 @@ func (s *server) put(req *PutReq) (res *PutRes, err error) {
 }
 
 func (s *server) inc(req *IncReq) (res *IncRes, err error) {
-	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.inc")
+	defer Logger.Time(time.Now(), time.Second, "server.inc")
 	res = &IncRes{}
 
 	db, ok := s.databases[req.Database]
@@ -456,7 +456,7 @@ func (s *server) inc(req *IncReq) (res *IncRes, err error) {
 }
 
 func (s *server) get(req *GetReq) (res *GetRes, err error) {
-	defer Logger.Time(time.Now(), 100*time.Millisecond, "server.get")
+	defer Logger.Time(time.Now(), time.Second, "server.get")
 	res = &GetRes{}
 
 	db, ok := s.databases[req.Database]
