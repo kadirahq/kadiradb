@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/kadirahq/go-tools/logger"
+	"github.com/kadirahq/go-tools/monitor"
 )
 
 const (
@@ -66,6 +68,7 @@ func main() {
 		load(s, idata)
 	}
 
+	go printAppMetrics()
 	go startPPROFServer()
 	Logger.Info(s.Listen())
 }
@@ -91,6 +94,20 @@ func load(s Server, data []byte) {
 		if err != nil {
 			Logger.Error(err)
 			return
+		}
+	}
+}
+
+func printAppMetrics() {
+	buff := bytes.NewBuffer(nil)
+	encd := json.NewEncoder(buff)
+
+	for _ = range time.Tick(time.Minute) {
+		buff.Reset()
+		vals := monitor.Values()
+		if err := encd.Encode(vals); err == nil {
+			data := buff.Bytes()
+			Logger.Print("metrics", string(data))
 		}
 	}
 }
