@@ -1,8 +1,6 @@
 syntax = "proto3";
 package main;
 
-import "github.com/kadirahq/kadiyadb/protocol.proto";
-
 //   Types
 // ---------
 
@@ -104,6 +102,7 @@ message GetReq {
   uint32 endTime = 3;
   repeated string fields = 4;
   repeated bool groupBy = 5 [packed=true];
+  uint32 resolution = 6;
 }
 
 message GetRes {
@@ -125,5 +124,5 @@ message MetricsReq {
 }
 
 message MetricsRes {
-  map<string, kadiyadb.Metrics> databases = 1;
+  // no fields
 }
