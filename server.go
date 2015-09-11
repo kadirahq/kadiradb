@@ -11,7 +11,7 @@ import (
 	"time"
 
 	goerr "github.com/go-errors/errors"
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 	"github.com/kadirahq/kadiyadb"
 	"github.com/meteorhacks/simple-rpc-go/srpc"
 )
@@ -32,6 +32,9 @@ const (
 var (
 	// ErrDatabase is returned when the requested database is not found
 	ErrDatabase = errors.New("database not found")
+
+	// ErrResolution requested resolution is not valid
+	ErrResolution = errors.New("resolution is not valid")
 )
 
 // Server handles requests
@@ -303,18 +306,6 @@ func (s *server) Batch(reqData []byte) (resData []byte, err error) {
 
 func (s *server) Metrics(reqData []byte) (resData []byte, err error) {
 	res := &MetricsRes{}
-	res.Databases = make(map[string]*kadiyadb.Metrics)
-
-	for name, db := range s.databases {
-		metrics, err := db.Metrics()
-		if err != nil {
-			Logger.Error(err)
-			continue
-		}
-
-		res.Databases[name] = metrics
-	}
-
 	resData, err = proto.Marshal(res)
 	if err != nil {
 		return nil, goerr.Wrap(err, 0)
@@ -464,8 +455,27 @@ func (s *server) get(req *GetReq) (res *GetRes, err error) {
 		return nil, goerr.Wrap(ErrDatabase, 0)
 	}
 
+	metadata, err := db.Info()
+	if err != nil {
+		return nil, goerr.Wrap(err, 0)
+	}
+
+	var resolution int64
+	if req.Resolution == 0 {
+		resolution = metadata.Resolution
+	} else {
+		resolution = int64(req.Resolution) * 1e9
+		if resolution%metadata.Resolution != 0 {
+			return nil, goerr.Wrap(ErrResolution, 0)
+		}
+	}
+
 	startTime := int64(req.StartTime) * 1e9
+	startTime -= startTime % resolution
+
 	endTime := int64(req.EndTime) * 1e9
+	endTime -= endTime % resolution
+
 	dataMap, err := db.Get(startTime, endTime, req.Fields)
 	if err != nil {
 		return nil, goerr.Wrap(err, 0)
@@ -473,7 +483,7 @@ func (s *server) get(req *GetReq) (res *GetRes, err error) {
 
 	ss := s.newSeriesSet(req.GroupBy)
 	for item, value := range dataMap {
-		sr := s.newSeries(value, item.Fields)
+		sr := s.newSeries(value, item.Fields, startTime, metadata.Resolution, resolution)
 		ss.add(sr)
 	}
 
@@ -482,13 +492,36 @@ func (s *server) get(req *GetReq) (res *GetRes, err error) {
 	return res, nil
 }
 
-func (s *server) newSeries(data [][]byte, fields []string) (sr *series) {
+func (s *server) newSeries(data [][]byte, fields []string, start, dres, rres int64) (sr *series) {
 	count := len(data)
-	points := make([]*point, count, count)
+	points := []*point{}
 
-	for i := 0; i < count; i++ {
+	var prevTs int64
+	var prevPt *point
+
+	// add first point
+	if count > 0 {
+		val, num := pldToVal(data[0])
+		p := &point{val, num}
+
+		points = append(points, p)
+		prevTs = start - (start % rres)
+		prevPt = p
+	}
+
+	for i := 1; i < count; i++ {
+		dts := start + dres*int64(i)
+		rts := dts - (dts % rres)
 		val, num := pldToVal(data[i])
-		points[i] = &point{val, num}
+		p := &point{val, num}
+
+		if rts == prevTs {
+			prevPt.add(p)
+		} else {
+			points = append(points, p)
+			prevTs = rts
+			prevPt = p
+		}
 	}
 
 	return &series{fields, points, data}

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/gogo/protobuf/proto"
 )
 
 const (
@@ -186,6 +186,120 @@ func TestPutGet(t *testing.T) {
 
 	point := grp.Points[0]
 	if point.Value != 1.1 || point.Count != 1 {
+		t.Fatal("incorrect values for point")
+	}
+}
+
+func TestPutGetRes(t *testing.T) {
+	fld := []string{"test", "put", "get"}
+	now := uint32(time.Now().Unix())
+
+	for i := 0; i < 20; i++ {
+		req := &PutReq{
+			Database:  "test-info",
+			Fields:    fld,
+			Timestamp: now - uint32(i)*60,
+			Count:     1,
+			Value:     1.1,
+		}
+
+		reqData, err := proto.Marshal(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		resData, err := s.Put(reqData)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		res := &PutRes{}
+		if err := proto.Unmarshal(resData, res); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	req2 := &GetReq{
+		Database:   "test-info",
+		Fields:     fld,
+		GroupBy:    []bool{true, true, true},
+		StartTime:  now - 720,
+		EndTime:    now,
+		Resolution: 240,
+	}
+
+	reqData2, err := proto.Marshal(req2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resData2, err := s.Get(reqData2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res2 := &GetRes{}
+	if err := proto.Unmarshal(resData2, res2); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(res2.Groups) != 1 {
+		t.Fatal("incorrect number of results")
+	}
+
+	grp := res2.Groups[0]
+	if !reflect.DeepEqual(grp.Fields, fld) {
+		t.Fatal("incorrect set of fields", grp.Fields, fld)
+	}
+
+	if len(grp.Points) != 3 {
+		t.Fatal("incorrect number of points")
+	}
+
+	point := grp.Points[0]
+	if point.Value != 4.4 || point.Count != 4 {
+		t.Fatal("incorrect values for point")
+	}
+
+	req3 := &GetReq{
+		Database:   "test-info",
+		Fields:     fld,
+		GroupBy:    []bool{true, true, true},
+		StartTime:  now - 720,
+		EndTime:    now,
+		Resolution: 360,
+	}
+
+	reqData3, err := proto.Marshal(req3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	resData3, err := s.Get(reqData3)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res3 := &GetRes{}
+	if err := proto.Unmarshal(resData3, res3); err != nil {
+		t.Fatal(err)
+	}
+
+	if len(res3.Groups) != 1 {
+		t.Fatal("incorrect number of results")
+	}
+
+	grp = res3.Groups[0]
+	if !reflect.DeepEqual(grp.Fields, fld) {
+		t.Fatal("incorrect set of fields", grp.Fields, fld)
+	}
+
+	if len(grp.Points) != 2 {
+		t.Fatal("incorrect number of points")
+	}
+
+	point = grp.Points[0]
+	if point.Value != 6.6 || point.Count != 6 {
 		t.Fatal("incorrect values for point")
 	}
 }
