@@ -1,14 +1,14 @@
 package main
 
 import (
-	"bytes"
-	"encoding/binary"
 	"errors"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
+	"reflect"
 	"time"
+	"unsafe"
 
 	goerr "github.com/go-errors/errors"
 	"github.com/gogo/protobuf/proto"
@@ -532,16 +532,47 @@ func (s *server) newSeriesSet(groupBy []bool) (ss *seriesSet) {
 	return &seriesSet{set, groupBy}
 }
 
+// func valToPld(val float64, num uint32) (pld []byte) {
+// 	buf := new(bytes.Buffer)
+// 	binary.Write(buf, binary.LittleEndian, val)
+// 	binary.Write(buf, binary.LittleEndian, num)
+// 	return buf.Bytes()
+// }
+
 func valToPld(val float64, num uint32) (pld []byte) {
-	buf := new(bytes.Buffer)
-	binary.Write(buf, binary.LittleEndian, val)
-	binary.Write(buf, binary.LittleEndian, num)
-	return buf.Bytes()
+	pld = make([]byte, 12)
+	valpld := []byte{}
+	valhdr := (*reflect.SliceHeader)(unsafe.Pointer(&valpld))
+	valhdr.Len = 8
+	valhdr.Cap = 8
+	valhdr.Data = uintptr(unsafe.Pointer(&val))
+	copy(pld, valpld)
+
+	numpld := []byte{}
+	numhdr := (*reflect.SliceHeader)(unsafe.Pointer(&numpld))
+	numhdr.Len = 8
+	numhdr.Cap = 8
+	numhdr.Data = uintptr(unsafe.Pointer(&num))
+	copy(pld[8:], numpld)
+
+	return pld
 }
 
+// func pldToVal(pld []byte) (val float64, num uint32) {
+// 	buf := bytes.NewBuffer(pld)
+// 	binary.Read(buf, binary.LittleEndian, &val)
+// 	binary.Read(buf, binary.LittleEndian, &num)
+// 	return val, num
+// }
+
 func pldToVal(pld []byte) (val float64, num uint32) {
-	buf := bytes.NewBuffer(pld)
-	binary.Read(buf, binary.LittleEndian, &val)
-	binary.Read(buf, binary.LittleEndian, &num)
-	return val, num
+	valpld := pld[:8]
+	valhdr := (*reflect.SliceHeader)(unsafe.Pointer(&valpld))
+	v := (*float64)(unsafe.Pointer(valhdr.Data))
+
+	numpld := pld[8:]
+	numhdr := (*reflect.SliceHeader)(unsafe.Pointer(&numpld))
+	n := (*uint32)(unsafe.Pointer(numhdr.Data))
+
+	return *v, *n
 }
