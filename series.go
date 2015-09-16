@@ -1,39 +1,29 @@
 package main
 
-type point struct {
-	value float64
-	count uint32
+func newResPoint(val float64, num uint32) (p *ResPoint) {
+	return &ResPoint{Value: val, Count: num}
 }
 
-func (p *point) add(q *point) {
-	p.value += q.value
-	p.count += q.count
+func (p *ResPoint) add(q *ResPoint) {
+	p.Value += q.Value
+	p.Count += q.Count
 }
 
-func (p *point) toResult() (item *ResPoint) {
-	item = &ResPoint{}
-	item.Value = p.value
-	item.Count = p.count
-	return item
+func newResSeries(fields []string) (sr *ResSeries) {
+	return &ResSeries{Fields: fields, Points: []*ResPoint{}}
 }
 
-type series struct {
-	fields []string
-	points []*point
-	data   [][]byte
-}
-
-func (sr *series) add(sn *series) {
-	count := len(sr.points)
+func (sr *ResSeries) add(sn *ResSeries) {
+	count := len(sr.Points)
 	for i := 0; i < count; i++ {
-		sr.points[i].add(sn.points[i])
+		sr.Points[i].add(sn.Points[i])
 	}
 }
 
-func (sr *series) canMerge(sn *series) (can bool) {
-	count := len(sr.fields)
+func (sr *ResSeries) canMerge(sn *ResSeries) (can bool) {
+	count := len(sr.Fields)
 	for i := 0; i < count; i++ {
-		if sr.fields[i] != sn.fields[i] {
+		if sr.Fields[i] != sn.Fields[i] {
 			return false
 		}
 	}
@@ -41,26 +31,12 @@ func (sr *series) canMerge(sn *series) (can bool) {
 	return true
 }
 
-func (sr *series) toResult() (item *ResSeries) {
-	item = &ResSeries{}
-	item.Fields = sr.fields
-
-	count := len(sr.points)
-	item.Points = make([]*ResPoint, count, count)
-	for i, p := range sr.points {
-		point := p.toResult()
-		item.Points[i] = point
-	}
-
-	return item
-}
-
 type seriesSet struct {
-	items   []*series
+	items   []*ResSeries
 	groupBy []bool
 }
 
-func (ss *seriesSet) add(sn *series) {
+func (ss *seriesSet) add(sn *ResSeries) {
 	ss.grpFields(sn)
 
 	count := len(ss.items)
@@ -75,32 +51,30 @@ func (ss *seriesSet) add(sn *series) {
 	ss.items = append(ss.items, sn)
 }
 
-func (ss *seriesSet) grpFields(sn *series) {
-	count := len(sn.fields)
+func (ss *seriesSet) grpFields(sn *ResSeries) {
+	count := len(sn.Fields)
 
 	if grpCount := len(ss.groupBy); grpCount < count {
 		count = grpCount
 	}
 
-	grouped := make([]string, count, count)
-
+	grouped := make([]string, count)
 	for i := 0; i < count; i++ {
 		if ss.groupBy[i] {
-			grouped[i] = sn.fields[i]
+			grouped[i] = sn.Fields[i]
 		}
 	}
 
-	sn.fields = grouped
+	sn.Fields = grouped
 }
 
 func (ss *seriesSet) toResult() (res []*ResSeries) {
 	count := len(ss.items)
-	res = make([]*ResSeries, count, count)
+	res = make([]*ResSeries, count)
 
 	for i := 0; i < count; i++ {
 		sr := ss.items[i]
-		item := sr.toResult()
-		res[i] = item
+		res[i] = sr
 	}
 
 	return res

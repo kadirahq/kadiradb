@@ -492,19 +492,19 @@ func (s *server) get(req *GetReq) (res *GetRes, err error) {
 	return res, nil
 }
 
-func (s *server) newSeries(data [][]byte, fields []string, start, dres, rres int64) (sr *series) {
+func (s *server) newSeries(data [][]byte, fields []string, start, dres, rres int64) (sr *ResSeries) {
+	sr = newResSeries(fields)
 	count := len(data)
-	points := []*point{}
 
 	var prevTs int64
-	var prevPt *point
+	var prevPt *ResPoint
 
 	// add first point
 	if count > 0 {
 		val, num := pldToVal(data[0])
-		p := &point{val, num}
+		p := newResPoint(val, num)
 
-		points = append(points, p)
+		sr.Points = append(sr.Points, p)
 		prevTs = start - (start % rres)
 		prevPt = p
 	}
@@ -513,31 +513,24 @@ func (s *server) newSeries(data [][]byte, fields []string, start, dres, rres int
 		dts := start + dres*int64(i)
 		rts := dts - (dts % rres)
 		val, num := pldToVal(data[i])
-		p := &point{val, num}
+		p := newResPoint(val, num)
 
 		if rts == prevTs {
 			prevPt.add(p)
 		} else {
-			points = append(points, p)
+			sr.Points = append(sr.Points, p)
 			prevTs = rts
 			prevPt = p
 		}
 	}
 
-	return &series{fields, points, data}
+	return sr
 }
 
 func (s *server) newSeriesSet(groupBy []bool) (ss *seriesSet) {
-	set := []*series{}
+	set := []*ResSeries{}
 	return &seriesSet{set, groupBy}
 }
-
-// func valToPld(val float64, num uint32) (pld []byte) {
-// 	buf := new(bytes.Buffer)
-// 	binary.Write(buf, binary.LittleEndian, val)
-// 	binary.Write(buf, binary.LittleEndian, num)
-// 	return buf.Bytes()
-// }
 
 func valToPld(val float64, num uint32) (pld []byte) {
 	pld = make([]byte, 12)
@@ -557,13 +550,6 @@ func valToPld(val float64, num uint32) (pld []byte) {
 
 	return pld
 }
-
-// func pldToVal(pld []byte) (val float64, num uint32) {
-// 	buf := bytes.NewBuffer(pld)
-// 	binary.Read(buf, binary.LittleEndian, &val)
-// 	binary.Read(buf, binary.LittleEndian, &num)
-// 	return val, num
-// }
 
 func pldToVal(pld []byte) (val float64, num uint32) {
 	valpld := pld[:8]
