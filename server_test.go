@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"os"
 	"reflect"
 	"testing"
@@ -402,5 +403,33 @@ func TestBatch(t *testing.T) {
 	if res.Batch[0].InfoRes == nil ||
 		res.Batch[1].InfoRes == nil {
 		t.Fatal("should have 2 info results")
+	}
+}
+
+func TestEncode(t *testing.T) {
+	p := valToPld(1, 2)
+	if !bytes.Equal(p, []byte{0, 0, 0, 0, 0, 0, 240, 63, 2, 0, 0, 0}) {
+		t.Fatal("wrong value")
+	}
+}
+
+func TestDecode(t *testing.T) {
+	x, y := pldToVal([]byte{0, 0, 0, 0, 0, 0, 240, 63, 2, 0, 0, 0})
+	if x != 1 || y != 2 {
+		t.Fatal("wrong value")
+	}
+}
+
+func BenchmarkEncode(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_ = valToPld(1, 2)
+	}
+}
+
+func BenchmarkDecode(b *testing.B) {
+	b.ReportAllocs()
+	for i := 0; i < b.N; i++ {
+		_, _ = pldToVal([]byte{0, 0, 0, 0, 0, 0, 240, 63, 2, 0, 0, 0})
 	}
 }

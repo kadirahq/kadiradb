@@ -1,2 +1,2 @@
-//go:generate protoc --gogo_out=. protocol.proto
+//go:generate protoc --gogofaster_out=. protocol.proto
 package main
